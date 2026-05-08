@@ -77,8 +77,8 @@ select,input[type=password],input[type=text]{width:100%;min-height:40px;border:1
     <h2>Wi-Fi</h2>
     <div class="status">
       <div class="pill"><div class="label">AP</div><div class="value" id="w-ap">HVAC-HU</div></div>
-      <div class="pill"><div class="label">Connected SSID</div><div class="value" id="w-ssid">-</div></div>
-      <div class="pill"><div class="label">Station IP</div><div class="value" id="w-ip">-</div></div>
+      <div class="pill"><div class="label">External Wi-Fi</div><div class="value" id="w-ssid">Not connected</div></div>
+      <div class="pill"><div class="label">External IP</div><div class="value" id="w-ip">-</div></div>
       <div class="pill"><div class="label">RSSI</div><div class="value" id="w-rssi">-</div></div>
     </div>
     <div class="netgrid" style="margin-top:10px">
@@ -90,7 +90,7 @@ select,input[type=password],input[type=text]{width:100%;min-height:40px;border:1
       <button onclick="connectWifi()">Connect</button>
       <button onclick="disconnectWifi()">Disconnect</button>
     </div>
-    <div class="hint">AP mode stays on, so this page remains available at 192.168.4.1.</div>
+    <div class="hint">This page is always available from the HVAC-HU Wi-Fi at 192.168.4.1.</div>
   </section>
 
   <section>
@@ -134,6 +134,12 @@ select,input[type=password],input[type=text]{width:100%;min-height:40px;border:1
 </main>
 <script>
 const names={screen:["DATC","INFO"],power:["OFF","ON"],wind:["FACE","FOOT","DEF","MIX"],ready:["DEV","READY"]};
+function readableWifiName(value, mode){
+  if(mode==="connecting") return "Connecting...";
+  if(!value) return "Not connected";
+  if(value[0]===":" || /^[0-9a-f]{24,}$/i.test(value)) return "Not connected";
+  return value;
+}
 async function writeSignal(signal,value){
   await fetch(`/api/write?signal=${signal}&value=${value}`);
   setTimeout(loadState,120);
@@ -155,9 +161,9 @@ async function loadWifi(){
   const r=await fetch("/api/wifi");
   const w=await r.json();
   document.getElementById("w-ap").textContent=w.apSsid;
-  document.getElementById("w-ssid").textContent=w.ssid||"-";
+  document.getElementById("w-ssid").textContent=readableWifiName(w.ssid,w.mode);
   document.getElementById("w-ip").textContent=w.ip||"-";
-  document.getElementById("w-rssi").textContent=w.rssi;
+  document.getElementById("w-rssi").textContent=w.mode==="connected" ? `${w.rssi} dBm` : "-";
 }
 async function scanWifi(){
   const r=await fetch("/api/wifi/scan");
@@ -166,7 +172,7 @@ async function scanWifi(){
   list.networks.forEach(n=>{
     const o=document.createElement("option");
     o.value=n.ssid;
-    o.textContent=`${n.ssid} (${n.rssi} dBm)`;
+    o.textContent=`${n.ssid || "(hidden network)"} (${n.rssi} dBm)`;
     ssid.appendChild(o);
   });
 }
@@ -268,6 +274,25 @@ static String jsonEscape(const String& value) {
   return escaped;
 }
 
+static uint8_t isReadableSsid(const String& ssid) {
+  if (ssid.length() == 0 || ssid.length() >= GDS_WIFI_SSID_MAX_LEN) {
+    return 0;
+  }
+
+  if (ssid.charAt(0) == ':') {
+    return 0;
+  }
+
+  for (uint16_t i = 0; i < ssid.length(); i++) {
+    char ch = ssid.charAt(i);
+    if (ch < 32 || ch > 126) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
 static uint8_t parseByteArg(const String& name, uint8_t& value) {
   if (!server.hasArg(name)) {
     return 0;
@@ -361,12 +386,17 @@ static void handleWifiScan() {
   String json = "{\"networks\":[";
 
   for (int i = 0; i < count; i++) {
-    if (i > 0) {
+    String scannedSsid = WiFi.SSID(i);
+    if (!isReadableSsid(scannedSsid)) {
+      continue;
+    }
+
+    if (json.length() > 13) {
       json += ",";
     }
 
     json += "{\"ssid\":\"";
-    json += jsonEscape(WiFi.SSID(i));
+    json += jsonEscape(scannedSsid);
     json += "\",\"rssi\":";
     json += String(WiFi.RSSI(i));
     json += ",\"secure\":";
@@ -388,8 +418,7 @@ static void handleWifiConnect() {
   String password = server.hasArg("password") ? server.arg("password") : "";
   ssid.trim();
 
-  if (ssid.length() == 0 || ssid.length() >= GDS_WIFI_SSID_MAX_LEN ||
-      password.length() >= GDS_WIFI_PASSWORD_MAX_LEN) {
+  if (!isReadableSsid(ssid) || password.length() >= GDS_WIFI_PASSWORD_MAX_LEN) {
     server.send(400, "application/json", "{\"ok\":0,\"error\":\"bad_length\"}");
     return;
   }
@@ -448,7 +477,7 @@ void webUiBegin(HuRequestSender sender) {
   String savedSsid;
   String savedPassword;
   loadWifiCredentials(savedSsid, savedPassword);
-  if (savedSsid.length() > 0) {
+  if (isReadableSsid(savedSsid)) {
     beginStationConnect(savedSsid, savedPassword, 0);
   }
 
