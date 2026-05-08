@@ -42,4 +42,11 @@ const uint8_t GDS_TEMP_MIN = 18;
 const uint8_t GDS_TEMP_MAX = 30;
 const uint8_t GDS_VOLUME_MAX = 30;
 
+const char GDS_WIFI_AP_SSID[] = "HVAC-HU";
+const char GDS_WIFI_AP_PASSWORD[] = "12345678";
+const uint16_t GDS_WEB_SERVER_PORT = 80;
+const uint16_t GDS_WIFI_EEPROM_SIZE = 128;
+const uint8_t GDS_WIFI_SSID_MAX_LEN = 32;
+const uint8_t GDS_WIFI_PASSWORD_MAX_LEN = 64;
+
 #endif

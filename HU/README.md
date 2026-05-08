@@ -4,12 +4,12 @@ HVAC Replica 프로젝트의 헤드 유닛 입니다.
 
 ## 개요
 
-`HU`는 ESP8266을 Head Unit 역할로 사용하기 위한 테스트 노드이다.
+`HU`는 ESP8266을 Head Unit 역할로 사용하기 위한 웹 기반 테스트 노드이다.
 
-MKBD 유닛이 실제 버튼 입력과 OLED 표시를 담당한다면, HU 유닛은 시리얼 명령을 받아 CAN 프레임을 생성하고 MKBD로 제어 요청을 보낸다. MKBD가 응답하거나 상태를 Broadcast하면 HU는 해당 프레임을 Serial Monitor에 출력한다.
+MKBD 유닛이 실제 버튼 입력과 OLED 표시를 담당한다면, HU 유닛은 웹 UI에서 사용자의 입력을 받아 CAN 프레임을 생성하고 MKBD로 제어 요청을 보낸다. MKBD가 응답하거나 상태를 Broadcast하면 HU는 해당 프레임을 Serial Monitor에 출력하고 웹 UI 상태에도 반영한다.
 
 ```text
-PC Serial Monitor
+PC / Phone Browser
   -> ESP8266 HU
   -> MCP2515 CAN
   -> MKBD
@@ -17,12 +17,55 @@ PC Serial Monitor
 
 ## 역할
 
-- Serial Monitor에서 사용자 명령 입력
-- 명령을 CAN Payload로 변환
+- ESP8266 Wi-Fi AP 생성
+- 웹 UI 제공
+- 웹 UI 입력을 CAN Payload로 변환
 - CAN ID `0x100`으로 MKBD에 제어 요청 송신
 - MKBD의 응답 CAN ID `0x101` 수신
 - MKBD 상태 Broadcast CAN ID `0x300` 수신
 - RX/TX 프레임과 Payload 요약을 Serial Monitor에 출력
+
+## 접속 방법
+
+ESP8266 HU를 업로드하고 부팅하면 아래 Wi-Fi AP가 항상 생성된다.
+
+```text
+SSID: HVAC-HU
+Password: 12345678
+```
+
+PC 또는 스마트폰에서 이 Wi-Fi에 연결한 뒤 브라우저에서 아래 주소로 접속한다.
+
+```text
+http://192.168.4.1
+```
+
+부팅 시 Serial Monitor에도 접속 정보가 출력된다.
+
+```text
+WEB AP SSID:HVAC-HU
+WEB URL:http://192.168.4.1
+```
+
+웹 UI의 Wi-Fi 영역에서 주변 네트워크를 검색하고, 원하는 Wi-Fi에 HU를 연결할 수 있다.
+
+```text
+Scan
+Connect
+Disconnect
+```
+
+HU가 외부 Wi-Fi에 연결되어도 `HVAC-HU` AP는 계속 유지된다. 따라서 외부 Wi-Fi 연결이 실패해도 `http://192.168.4.1`로 다시 접속할 수 있다.
+
+연결된 Wi-Fi 정보는 웹 UI에서 확인할 수 있다.
+
+```text
+Connected SSID
+Station IP
+RSSI
+```
+
+입력한 Wi-Fi 정보는 EEPROM에 저장되며, 재부팅 후 자동으로 재접속을 시도한다.
 
 ## 하드웨어
 
@@ -41,6 +84,8 @@ const uint8_t GDS_PIN_CAN_CS = D8;
 MCP2515 모듈 배선에 따라 CS 핀은 변경할 수 있다. ESP8266에서 `D8`은 부팅 스트랩 핀이므로, 업로드나 부팅 문제가 있으면 `D2` 같은 다른 GPIO로 변경하는 것이 좋다.
 
 ## Serial 설정
+
+웹 UI를 사용하더라도 Serial Monitor는 CAN 로그 확인용으로 사용한다.
 
 Serial Monitor baud rate:
 
@@ -78,7 +123,44 @@ HU와 MKBD는 8바이트 고정 Payload를 사용한다.
 
 Checksum은 Byte0부터 Byte6까지 XOR한 값이다.
 
-## 지원 명령어
+## 웹 UI 기능
+
+웹 UI에서 다음 기능을 제어할 수 있다.
+
+- DATC / INFO 화면 전환
+- Power On / Off
+- A/C On / Off
+- Auto On / Off
+- Fan Speed `0~8`
+- Temperature `18~30`
+- Wind Mode `FACE / FOOT / DEF / MIX`
+- Media Ready / Dev
+- Volume `0~30`
+- Map Ready / Dev
+
+웹 UI는 내부적으로 아래 API를 호출한다.
+
+```text
+GET /api/write?signal={signal}&value={value}
+GET /api/read?signal={signal}
+GET /api/state
+GET /api/wifi
+GET /api/wifi/scan
+POST /api/wifi/connect
+POST /api/wifi/disconnect
+```
+
+예시:
+
+```text
+http://192.168.4.1/api/write?signal=8&value=1
+```
+
+위 요청은 `Screen Mode = INFO` Write Request를 CAN으로 송신한다.
+
+## Serial 명령어
+
+웹 UI가 주 인터페이스지만, Serial Monitor 명령도 유지한다.
 
 ### HVAC 제어
 

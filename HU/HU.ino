@@ -6,6 +6,7 @@
 #include "CanMonitor.h"
 #include "CanProtocol.h"
 #include "CommandParser.h"
+#include "WebUi.h"
 
 uint8_t huTxCounter = 0;
 unsigned long lastHelpTime = 0;
@@ -26,11 +27,13 @@ void setup() {
   Serial.print("CAN:");
   Serial.println(ready ? "READY" : "FAIL");
 
+  webUiBegin(sendRequest);
   printHuHelp();
   lastHelpTime = millis();
 }
 
 void loop() {
+  webUiHandle();
   processSerialCommand();
   processCanReceive();
 
@@ -100,4 +103,5 @@ void processCanReceive() {
 
   CanPayload payload = canPayloadFromBytes(frame.data);
   canMonitorPrintPayloadSummary(payload);
+  webUiUpdateFromPayload(payload);
 }
