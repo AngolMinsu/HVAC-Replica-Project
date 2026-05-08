@@ -1,0 +1,58 @@
+#ifndef HU_CAN_PROTOCOL_H
+#define HU_CAN_PROTOCOL_H
+
+#include <Arduino.h>
+#include "GDS.h"
+
+const uint16_t CAN_ID_CONTROL_REQUEST = GDS_CAN_ID_CONTROL_REQUEST;
+const uint16_t CAN_ID_CONTROL_RESPONSE = GDS_CAN_ID_CONTROL_RESPONSE;
+const uint16_t CAN_ID_HVAC_STATUS = GDS_CAN_ID_HVAC_STATUS;
+const uint8_t CAN_DLC = GDS_CAN_DLC;
+
+enum CanService : uint8_t {
+  CAN_SERVICE_WRITE_REQUEST = GDS_CAN_SERVICE_WRITE_REQUEST,
+  CAN_SERVICE_WRITE_RESPONSE = GDS_CAN_SERVICE_WRITE_RESPONSE,
+  CAN_SERVICE_READ_REQUEST = GDS_CAN_SERVICE_READ_REQUEST,
+  CAN_SERVICE_READ_RESPONSE = GDS_CAN_SERVICE_READ_RESPONSE
+};
+
+enum CanResult : uint8_t {
+  CAN_RESULT_NORMAL = GDS_CAN_RESULT_NORMAL,
+  CAN_RESULT_SUCCESS = GDS_CAN_RESULT_SUCCESS,
+  CAN_RESULT_FAIL = GDS_CAN_RESULT_FAIL
+};
+
+enum CanSignal : uint8_t {
+  CAN_SIGNAL_POWER = GDS_CAN_SIGNAL_POWER,
+  CAN_SIGNAL_FAN_SPEED = GDS_CAN_SIGNAL_FAN_SPEED,
+  CAN_SIGNAL_TEMPERATURE = GDS_CAN_SIGNAL_TEMPERATURE,
+  CAN_SIGNAL_MODE = GDS_CAN_SIGNAL_MODE,
+  CAN_SIGNAL_AC = GDS_CAN_SIGNAL_AC,
+  CAN_SIGNAL_AUTO = GDS_CAN_SIGNAL_AUTO,
+  CAN_SIGNAL_INTAKE = GDS_CAN_SIGNAL_INTAKE,
+  CAN_SIGNAL_SCREEN_MODE = GDS_CAN_SIGNAL_SCREEN_MODE,
+  CAN_SIGNAL_MEDIA = GDS_CAN_SIGNAL_MEDIA,
+  CAN_SIGNAL_VOLUME = GDS_CAN_SIGNAL_VOLUME,
+  CAN_SIGNAL_MAP = GDS_CAN_SIGNAL_MAP
+};
+
+struct CanPayload {
+  uint8_t service;
+  uint8_t result;
+  uint8_t signal;
+  uint8_t value;
+  uint8_t option;
+  uint8_t reserved;
+  uint8_t counter;
+  uint8_t checksum;
+};
+
+uint8_t canCalculateChecksum(const CanPayload& payload);
+uint8_t canValidateChecksum(const CanPayload& payload);
+CanPayload canMakePayload(uint8_t service, uint8_t result, uint8_t signal, uint8_t value, uint8_t option, uint8_t counter);
+void canPayloadToBytes(const CanPayload& payload, uint8_t bytes[CAN_DLC]);
+CanPayload canPayloadFromBytes(const uint8_t bytes[CAN_DLC]);
+const char* canSignalToText(uint8_t signal);
+const char* canServiceToText(uint8_t service);
+
+#endif
