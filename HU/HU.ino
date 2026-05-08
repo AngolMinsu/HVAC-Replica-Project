@@ -101,8 +101,3 @@ void processCanReceive() {
   CanPayload payload = canPayloadFromBytes(frame.data);
   canMonitorPrintPayloadSummary(payload);
 }
-
-#include "CanProtocol.cpp"
-#include "CanDriver.cpp"
-#include "CanMonitor.cpp"
-#include "CommandParser.cpp"
