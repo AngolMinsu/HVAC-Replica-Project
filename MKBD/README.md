@@ -1,5 +1,7 @@
 # SH1106LED DATC / INFO Modular Code
 
+HVAC레플리카 프로젝트의 전환형 키보드 유닛 입니다.
+
 ## 파일 구성
 
 ```text
@@ -15,25 +17,28 @@ Info.cpp
 ## 버튼 기능
 
 ### 공통
-| 핀 | 기능 |
-|---|---|
-| D6 | DATC <-> INFO 화면 전환 |
+
+| 핀  | 기능                    |
+| --- | ----------------------- |
+| D6  | DATC <-> INFO 화면 전환 |
 
 ### DATC 화면
-| 핀 | 기능 |
-|---|---|
-| D2 | OFF -> AC -> HEAT -> AUTO |
-| D3 | FAN 0~8 |
-| D4 | TEMP 18~30 |
-| D5 | AIR FACE/FOOT/DEF/MIX |
+
+| 핀  | 기능                      |
+| --- | ------------------------- |
+| D2  | OFF -> AC -> HEAT -> AUTO |
+| D3  | FAN 0~8                   |
+| D4  | TEMP 18~30                |
+| D5  | AIR FACE/FOOT/DEF/MIX     |
 
 ### INFO 화면
-| 핀 | 기능 |
-|---|---|
-| D2 | MEDIA, 추후 개발 예정 |
-| D3 | VOLUME UP |
-| D4 | VOLUME DOWN |
-| D5 | MAP, 추후 개발 예정 |
+
+| 핀  | 기능                  |
+| --- | --------------------- |
+| D2  | MEDIA, 추후 개발 예정 |
+| D3  | VOLUME UP             |
+| D4  | VOLUME DOWN           |
+| D5  | MAP, 추후 개발 예정   |
 
 ## 핵심 설계
 
