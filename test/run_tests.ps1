@@ -110,4 +110,17 @@ Invoke-TestBuild `
     "$root\MKBD\state\State.cpp"
   )
 
+Invoke-TestBuild `
+  -Name "INTEGRATION" `
+  -Output "$PSScriptRoot\integration\test_integration.exe" `
+  -Includes @("$PSScriptRoot\TestSupport", "$root\HU", "$root\MKBD") `
+  -Sources @(
+    "$PSScriptRoot\integration\test_main.cpp",
+    "$PSScriptRoot\integration\Test_EndToEndControlInput.cpp",
+    "$root\HU\CommandParser.cpp",
+    "$root\MKBD\can\CanProtocol.cpp",
+    "$root\MKBD\can\CanHandler.cpp",
+    "$root\MKBD\state\State.cpp"
+  )
+
 exit 0
