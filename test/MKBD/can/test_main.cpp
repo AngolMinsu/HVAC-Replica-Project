@@ -1,20 +1,20 @@
-#include <stdio.h>
+﻿#include <stdio.h>
 
 #include "../../TestSupport/Arduino.h"
 #define TEST_ASSERT_RETURN 1
 #include "../../TestSupport/Test_Assert.h"
 
-uint8_t Test_CanProtocol();
-uint8_t Test_CanHandler();
-uint8_t Test_CanDriver();
-uint8_t Test_CanMonitor();
+uint8_t Test_CanProtocol(uint16_t loop);
+uint8_t Test_CanHandler(uint16_t loop);
+uint8_t Test_CanDriver(uint16_t loop);
+uint8_t Test_CanMonitor(uint16_t loop);
 
 int main(void) {
   printf("[TEST] MKBD can unit test start\n");
-  ASSERT(Test_CanProtocol());
-  ASSERT(Test_CanHandler());
-  ASSERT(Test_CanDriver());
-  ASSERT(Test_CanMonitor());
+  ASSERT(Test_CanProtocol(1));
+  ASSERT(Test_CanHandler(1));
+  ASSERT(Test_CanDriver(1));
+  ASSERT(Test_CanMonitor(1));
   printf("[PASS] MKBD can unit test complete\n");
   return 0;
 }

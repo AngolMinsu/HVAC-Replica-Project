@@ -1,9 +1,9 @@
-#include "../../HU/CanMonitor.h"
+﻿#include "../../HU/CanMonitor.h"
 #include "../../HU/CanProtocol.h"
 #define TEST_ASSERT_RETURN 0
 #include "../TestSupport/Test_Assert.h"
 
-uint8_t Test_CanMonitor() {
+uint8_t Test_CanMonitor(uint16_t loop) {
   CanFrame frame;
   frame.id = CAN_ID_CONTROL_REQUEST;
   frame.dlc = 2;

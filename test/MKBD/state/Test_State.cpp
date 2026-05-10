@@ -1,9 +1,9 @@
-#include "../../../MKBD/state/State.h"
+﻿#include "../../../MKBD/state/State.h"
 #include "../../../MKBD/GDS.h"
 #define TEST_ASSERT_RETURN 0
 #include "../../TestSupport/Test_Assert.h"
 
-uint8_t Test_State() {
+uint8_t Test_State(uint16_t loop) {
   SystemState state;
   initSystemState(state);
 

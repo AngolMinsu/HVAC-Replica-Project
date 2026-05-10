@@ -1,8 +1,8 @@
-#include "../../HU/CanProtocol.h"
+﻿#include "../../HU/CanProtocol.h"
 #define TEST_ASSERT_RETURN 0
 #include "../TestSupport/Test_Assert.h"
 
-uint8_t Test_CanProtocol() {
+uint8_t Test_CanProtocol(uint16_t loop) {
   CanPayload payload = canMakePayload(CAN_SERVICE_WRITE_REQUEST, CAN_RESULT_NORMAL, CAN_SIGNAL_FAN_SPEED, 3, 0, 7);
   ASSERT_EQUALS(0, payload.service, CAN_SERVICE_WRITE_REQUEST);
   ASSERT_EQUALS(1, payload.signal, CAN_SIGNAL_FAN_SPEED);

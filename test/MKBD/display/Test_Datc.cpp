@@ -1,9 +1,9 @@
-#include "../../../MKBD/display/Datc.h"
+﻿#include "../../../MKBD/display/Datc.h"
 #include "../../../MKBD/GDS.h"
 #define TEST_ASSERT_RETURN 0
 #include "../../TestSupport/Test_Assert.h"
 
-uint8_t Test_Datc() {
+uint8_t Test_Datc(uint16_t loop) {
   SystemState state;
   state.hvacMode = HVAC_OFF;
   state.fanSpeed = 0;
@@ -22,5 +22,14 @@ uint8_t Test_Datc() {
 
   ASSERT_EQUALS(7, datcHandleButton5(state), 1);
   ASSERT_EQUALS(8, state.windMode, WIND_FACE);
+
+  state.hvacMode = HVAC_AUTO;
+  state.fanSpeed = GDS_FAN_SPEED_MAX;
+  ASSERT_EQUALS(9, datcHandleButton3(state), 1);
+  ASSERT_EQUALS(10, state.fanSpeed, GDS_FAN_SPEED_MIN);
+
+  state.setTemp = (GDS_TEMP_MIN + GDS_TEMP_MAX) / 2;
+  ASSERT_EQUALS(11, datcHandleButton4(state), 1);
+  ASSERT_EQUALS(12, state.setTemp, ((GDS_TEMP_MIN + GDS_TEMP_MAX) / 2) + 1);
   return 1;
 }

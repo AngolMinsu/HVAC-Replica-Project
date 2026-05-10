@@ -1,9 +1,9 @@
-#include "../../../MKBD/can/CanDriver.h"
+﻿#include "../../../MKBD/can/CanDriver.h"
 #include "../../../MKBD/can/CanProtocol.h"
 #define TEST_ASSERT_RETURN 0
 #include "../../TestSupport/Test_Assert.h"
 
-uint8_t Test_CanDriver() {
+uint8_t Test_CanDriver(uint16_t loop) {
   CanFrame frame;
   frame.id = CAN_ID_CONTROL_REQUEST;
   frame.dlc = CAN_DLC + 1;

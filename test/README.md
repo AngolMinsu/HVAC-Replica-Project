@@ -33,6 +33,10 @@ g++ -std=c++17 -Itest\TestSupport test\TestSupport\Test_Assert.cpp -o test\test_
 .\test\run_tests.ps1
 ```
 
-테스트는 각 폴더의 `test_main.cpp`에서 `ASSERT(Test_...(input..., actual..., expected...))` 형태로 호출하고,
+테스트는 각 폴더의 `test_main.cpp`에서 `ASSERT(Test_...(loop, input..., actual..., expected...))` 형태로 호출하고,
 각 테스트 파일 내부에서 `ASSERT_EQUALS(index, actual, expected)`로 필드 단위 값을 비교합니다.
 불일치하면 파일, 줄 번호, actual/expected 값이 터미널에 출력되고 테스트가 중단됩니다.
+
+`loop`는 같은 입력 시나리오를 반복 실행하기 위한 첫 번째 인자입니다. 예를 들어 엔코더를 3회 돌려야 다음 상태로 넘어가는 요구사항이 생기면 `ASSERT(Test_Encoder(3, ...))` 형태로 반복 검증할 수 있습니다.
+
+테스트 케이스는 최소값, 최대값, 경계값, 중앙값, 요구사항 대표값을 포함하도록 구성했습니다.
