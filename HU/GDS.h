@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-// ESP8266 Lolin D2 Mini + MCP2515
+// ESP8266 Lolin D1 R2 Mini + MCP2515
 // Adjust this pin if your MCP2515 CS wiring is different.
 const uint8_t GDS_PIN_CAN_CS = D8;
 

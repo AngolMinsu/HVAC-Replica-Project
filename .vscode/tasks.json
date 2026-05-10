@@ -1,0 +1,39 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Unit Test",
+      "type": "shell",
+      "command": "g++",
+      "args": [
+        "-g",
+        "-std=c++17",
+        "-Itest\\TestSupport",
+        "test\\TestSupport\\Test_Assert.cpp",
+        "-o",
+        "test\\test_all.exe"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "Run Unit Test",
+      "type": "shell",
+      "command": ".\\test\\test_all.exe",
+      "dependsOn": "Build Unit Test",
+      "dependsOrder": "sequence",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
