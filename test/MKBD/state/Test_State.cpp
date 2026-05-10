@@ -22,5 +22,8 @@ uint8_t Test_State(uint16_t loop) {
   ASSERT_EQUALS(8, screenModeToText(SCREEN_INFO)[0], 'I');
   ASSERT_EQUALS(9, hvacModeToText(HVAC_AUTO)[0], 'A');
   ASSERT_EQUALS(10, windModeToText(WIND_DEF)[0], 'D');
+  ASSERT_EQUALS(11, screenModeToText((ScreenMode)0xFF)[0], 'U');
+  ASSERT_EQUALS(12, hvacModeToText((HvacMode)0xFF)[0], 'U');
+  ASSERT_EQUALS(13, windModeToText((WindMode)0xFF)[0], 'U');
   return 1;
 }

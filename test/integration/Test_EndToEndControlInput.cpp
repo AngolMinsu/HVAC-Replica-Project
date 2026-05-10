@@ -123,8 +123,11 @@ uint8_t Test_EndToEndControlInput(uint16_t loop) {
       SCREEN_INFO, HVAC_AUTO, 4, GDS_TEMP_MAX, WIND_MIX, GDS_VOLUME_MAX, 1, 1));
 
   ASSERT(rejectInvalidHuInput(1, "fan 9"));
+  ASSERT(rejectInvalidHuInput(1, "fan 255"));
   ASSERT(rejectInvalidHuInput(1, "temp 17"));
+  ASSERT(rejectInvalidHuInput(1, "temp 255"));
   ASSERT(rejectInvalidHuInput(1, "volume 31"));
+  ASSERT(rejectInvalidHuInput(1, "volume 255"));
   ASSERT(rejectCorruptedCanRequest(1));
 
   return 1;

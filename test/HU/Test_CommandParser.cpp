@@ -36,8 +36,11 @@ uint8_t Test_CommandParser(uint16_t loop) {
   ASSERT(expectCommand(1, "screen info", 1, CAN_SERVICE_WRITE_REQUEST, CAN_SIGNAL_SCREEN_MODE, 1));
   ASSERT(expectCommand(1, "read map", 1, CAN_SERVICE_READ_REQUEST, CAN_SIGNAL_MAP, 0));
   ASSERT(expectCommand(1, "temp 17", 0, 0, 0, 0));
+  ASSERT(expectCommand(1, "temp 255", 0, 0, 0, 0));
   ASSERT(expectCommand(1, "volume 31", 0, 0, 0, 0));
+  ASSERT(expectCommand(1, "volume 255", 0, 0, 0, 0));
   ASSERT(expectCommand(1, "fan 9", 0, 0, 0, 0));
+  ASSERT(expectCommand(1, "fan 255", 0, 0, 0, 0));
   ASSERT(expectCommand(1, "temp cold", 0, 0, 0, 0));
   return 1;
 }

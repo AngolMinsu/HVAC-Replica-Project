@@ -3,6 +3,23 @@
 #define TEST_ASSERT_RETURN 0
 #include "../../TestSupport/Test_Assert.h"
 
+static uint8_t expectCanNok(
+    SystemState& state,
+    const CanPayload& request,
+    uint8_t expErrorCode,
+    int expFanSpeed,
+    int expSetTemp,
+    int expVolume) {
+  CanPayload response;
+  ASSERT_EQUALS(0, canProcessControlRequest(state, request, response), 0);
+  ASSERT_EQUALS(1, response.result, CAN_RESULT_FAIL);
+  ASSERT_EQUALS(2, response.option, expErrorCode);
+  ASSERT_EQUALS(3, state.fanSpeed, expFanSpeed);
+  ASSERT_EQUALS(4, state.setTemp, expSetTemp);
+  ASSERT_EQUALS(5, state.volume, expVolume);
+  return 1;
+}
+
 uint8_t Test_CanHandler(uint16_t loop) {
   if (loop == 0) loop = 1;
 
@@ -38,6 +55,9 @@ uint8_t Test_CanHandler(uint16_t loop) {
   ASSERT_EQUALS(14, response.result, CAN_RESULT_FAIL);
   ASSERT_EQUALS(15, response.option, CAN_ERROR_VALUE_OUT_OF_RANGE);
 
+  request = canMakePayload(CAN_SERVICE_WRITE_REQUEST, CAN_RESULT_NORMAL, CAN_SIGNAL_TEMPERATURE, 0xFF, 0, 7);
+  ASSERT(expectCanNok(state, request, CAN_ERROR_VALUE_OUT_OF_RANGE, GDS_FAN_SPEED_MAX, GDS_TEMP_MAX, GDS_VOLUME_DEFAULT));
+
   request = canMakePayload(CAN_SERVICE_WRITE_REQUEST, CAN_RESULT_NORMAL, CAN_SIGNAL_VOLUME, GDS_VOLUME_MAX, 0, 7);
   ASSERT_EQUALS(16, canProcessControlRequest(state, request, response), 1);
   ASSERT_EQUALS(17, state.volume, GDS_VOLUME_MAX);
@@ -45,6 +65,15 @@ uint8_t Test_CanHandler(uint16_t loop) {
   request = canMakePayload(CAN_SERVICE_WRITE_REQUEST, CAN_RESULT_NORMAL, CAN_SIGNAL_VOLUME, GDS_VOLUME_MAX + 1, 0, 8);
   ASSERT_EQUALS(18, canProcessControlRequest(state, request, response), 0);
   ASSERT_EQUALS(19, response.option, CAN_ERROR_VALUE_OUT_OF_RANGE);
+
+  request = canMakePayload(CAN_SERVICE_WRITE_REQUEST, CAN_RESULT_NORMAL, CAN_SIGNAL_FAN_SPEED, 0xFF, 0, 9);
+  ASSERT(expectCanNok(state, request, CAN_ERROR_VALUE_OUT_OF_RANGE, GDS_FAN_SPEED_MAX, GDS_TEMP_MAX, GDS_VOLUME_MAX));
+
+  request = canMakePayload(CAN_SERVICE_WRITE_REQUEST, CAN_RESULT_NORMAL, CAN_SIGNAL_VOLUME, 0xFF, 0, 10);
+  ASSERT(expectCanNok(state, request, CAN_ERROR_VALUE_OUT_OF_RANGE, GDS_FAN_SPEED_MAX, GDS_TEMP_MAX, GDS_VOLUME_MAX));
+
+  request = canMakePayload(CAN_SERVICE_WRITE_REQUEST, CAN_RESULT_NORMAL, 0xFF, 1, 0, 11);
+  ASSERT(expectCanNok(state, request, CAN_ERROR_UNSUPPORTED_SIGNAL, GDS_FAN_SPEED_MAX, GDS_TEMP_MAX, GDS_VOLUME_MAX));
 
   request = canMakePayload(CAN_SERVICE_READ_REQUEST, CAN_RESULT_NORMAL, CAN_SIGNAL_FAN_SPEED, 0, 0, 9);
   ASSERT_EQUALS(20, canProcessControlRequest(state, request, response), 1);
