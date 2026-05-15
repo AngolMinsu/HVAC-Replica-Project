@@ -20,7 +20,7 @@ static uint8_t applyHuInput(
     ScreenMode expScreenMode,
     HvacMode expHvacMode,
     int expFanSpeed,
-    int expSetTemp,
+    int expDriverTemp,
     WindMode expWindMode,
     int expVolume,
     uint8_t expMediaReady,
@@ -48,7 +48,7 @@ static uint8_t applyHuInput(
     ASSERT_EQUALS(7, state.screenMode, expScreenMode);
     ASSERT_EQUALS(8, state.hvacMode, expHvacMode);
     ASSERT_EQUALS(9, state.fanSpeed, expFanSpeed);
-    ASSERT_EQUALS(10, state.setTemp, expSetTemp);
+    ASSERT_EQUALS(10, state.driverTemp, expDriverTemp);
     ASSERT_EQUALS(11, state.windMode, expWindMode);
     ASSERT_EQUALS(12, state.volume, expVolume);
     ASSERT_EQUALS(13, state.mediaReady, expMediaReady);

@@ -67,7 +67,9 @@ Invoke-TestBuild `
   -Sources @(
     "$PSScriptRoot\MKBD\button\test_main.cpp",
     "$PSScriptRoot\MKBD\button\Test_ButtonInput.cpp",
-    "$root\MKBD\button\ButtonInput.cpp"
+    "$PSScriptRoot\MKBD\button\Test_EncoderInput.cpp",
+    "$root\MKBD\button\ButtonInput.cpp",
+    "$root\MKBD\encoder\EncoderInput.cpp"
   )
 
 Invoke-TestBuild `

@@ -7,24 +7,42 @@ uint8_t Test_Info(uint16_t loop) {
   SystemState state;
   state.mediaReady = false;
   state.mapReady = false;
+  state.navReady = false;
+  state.radioMode = false;
+  state.mute = false;
+  state.radioTune = GDS_RADIO_TUNE_DEFAULT;
   state.volume = GDS_VOLUME_MAX;
 
-  ASSERT_EQUALS(0, infoHandleButton2(state), 1);
-  ASSERT_EQUALS(1, state.mediaReady, 1);
-  ASSERT_EQUALS(2, infoHandleButton3(state), 0);
+  ASSERT_EQUALS(0, infoIncreaseVolume(state), 0);
+  ASSERT_EQUALS(1, state.volume, GDS_VOLUME_MAX);
+  ASSERT_EQUALS(2, infoToggleMute(state), 1);
+  ASSERT_EQUALS(12, state.mute, 1);
+  ASSERT_EQUALS(13, infoToggleMute(state), 1);
+  ASSERT_EQUALS(14, state.mute, 0);
   ASSERT_EQUALS(3, state.volume, GDS_VOLUME_MAX);
 
   state.volume = GDS_VOLUME_MIN;
-  ASSERT_EQUALS(4, infoHandleButton4(state), 0);
+  ASSERT_EQUALS(4, infoDecreaseVolume(state), 0);
   ASSERT_EQUALS(5, state.volume, GDS_VOLUME_MIN);
 
-  ASSERT_EQUALS(6, infoHandleButton5(state), 1);
+  ASSERT_EQUALS(6, infoHandleMap(state), 1);
   ASSERT_EQUALS(7, state.mapReady, 1);
+  ASSERT_EQUALS(15, infoHandleNav(state), 1);
+  ASSERT_EQUALS(16, state.navReady, 1);
+  ASSERT_EQUALS(17, infoTuneUp(state), 0);
+  ASSERT_EQUALS(18, infoHandleRadio(state), 1);
+  ASSERT_EQUALS(19, state.radioMode, 1);
+  ASSERT_EQUALS(20, infoTuneUp(state), 1);
+  ASSERT_EQUALS(21, state.radioTune, GDS_RADIO_TUNE_DEFAULT + 1);
+  ASSERT_EQUALS(22, infoTuneDown(state), 1);
+  ASSERT_EQUALS(23, state.radioTune, GDS_RADIO_TUNE_DEFAULT);
+  ASSERT_EQUALS(24, infoSelect(state), 1);
+  ASSERT_EQUALS(25, state.mediaReady, 1);
 
   state.volume = (GDS_VOLUME_MIN + GDS_VOLUME_MAX) / 2;
-  ASSERT_EQUALS(8, infoHandleButton3(state), 1);
+  ASSERT_EQUALS(8, infoIncreaseVolume(state), 1);
   ASSERT_EQUALS(9, state.volume, ((GDS_VOLUME_MIN + GDS_VOLUME_MAX) / 2) + 1);
-  ASSERT_EQUALS(10, infoHandleButton4(state), 1);
+  ASSERT_EQUALS(10, infoDecreaseVolume(state), 1);
   ASSERT_EQUALS(11, state.volume, (GDS_VOLUME_MIN + GDS_VOLUME_MAX) / 2);
   return 1;
 }

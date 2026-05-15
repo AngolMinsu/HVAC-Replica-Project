@@ -1,103 +1,85 @@
-﻿#include "../../../MKBD/app/AppLogic.h"
+#include "../../../MKBD/app/AppLogic.h"
 #include "../../../MKBD/GDS.h"
 #define TEST_ASSERT_RETURN 0
 #include "../../TestSupport/Test_Assert.h"
 
-static uint8_t expectButton(
-    uint16_t loop,
-    uint8_t button,
-    ScreenMode inputScreenMode,
-    HvacMode inputHvacMode,
-    int inputFanSpeed,
-    int inputSetTemp,
-    WindMode inputWindMode,
-    int inputVolume,
-    uint8_t inputMediaReady,
-    uint8_t inputMapReady,
-    uint8_t expChanged,
-    ScreenMode expScreenMode,
-    HvacMode expHvacMode,
-    int expFanSpeed,
-    int expSetTemp,
-    WindMode expWindMode,
-    int expVolume,
-    uint8_t expMediaReady,
-    uint8_t expMapReady) {
-  if (loop == 0) loop = 1;
-
-  for (uint16_t i = 0; i < loop; i++) {
-    SystemState actual;
-    actual.screenMode = inputScreenMode;
-    actual.hvacMode = inputHvacMode;
-    actual.fanSpeed = inputFanSpeed;
-    actual.setTemp = inputSetTemp;
-    actual.windMode = inputWindMode;
-    actual.volume = inputVolume;
-    actual.mediaReady = inputMediaReady != 0;
-    actual.mapReady = inputMapReady != 0;
-
-    uint8_t changed = handleButtonAction(actual, button);
-
-    ASSERT_EQUALS(0, changed, expChanged);
-    ASSERT_EQUALS(1, actual.screenMode, expScreenMode);
-    ASSERT_EQUALS(2, actual.hvacMode, expHvacMode);
-    ASSERT_EQUALS(3, actual.fanSpeed, expFanSpeed);
-    ASSERT_EQUALS(4, actual.setTemp, expSetTemp);
-    ASSERT_EQUALS(5, actual.windMode, expWindMode);
-    ASSERT_EQUALS(6, actual.volume, expVolume);
-    ASSERT_EQUALS(7, actual.mediaReady, expMediaReady);
-    ASSERT_EQUALS(8, actual.mapReady, expMapReady);
-  }
-
-  return 1;
+static void initAppTestState(SystemState& state) {
+  initSystemState(state);
+  state.hvacMode = HVAC_AUTO;
+  state.fanSpeed = 3;
+  state.driverTemp = GDS_TEMP_DEFAULT;
+  state.passengerTemp = GDS_TEMP_DEFAULT;
+  state.windMode = WIND_FACE;
+  state.volume = GDS_VOLUME_DEFAULT;
+  state.mute = false;
+  state.mediaReady = false;
+  state.mapReady = false;
+  state.navReady = false;
+  state.radioMode = false;
+  state.radioTune = GDS_RADIO_TUNE_DEFAULT;
 }
 
 uint8_t Test_AppLogic(uint16_t loop) {
   if (loop == 0) loop = 1;
 
-  ASSERT(expectButton(loop, APP_BUTTON_2, SCREEN_DATC, HVAC_OFF, 0, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0,
-      1, SCREEN_DATC, HVAC_AC, 1, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_2, SCREEN_DATC, HVAC_AUTO, 1, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0,
-      1, SCREEN_DATC, HVAC_OFF, 0, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_3, SCREEN_DATC, HVAC_AC, 8, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0,
-      1, SCREEN_DATC, HVAC_AC, 0, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_3, SCREEN_DATC, HVAC_AC, GDS_FAN_SPEED_MIN, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0,
-      1, SCREEN_DATC, HVAC_AC, GDS_FAN_SPEED_MIN + 1, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_4, SCREEN_DATC, HVAC_AUTO, 3, GDS_TEMP_MAX, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0,
-      1, SCREEN_DATC, HVAC_AUTO, 3, GDS_TEMP_MIN, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_4, SCREEN_DATC, HVAC_AUTO, 3, GDS_TEMP_MIN, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0,
-      1, SCREEN_DATC, HVAC_AUTO, 3, GDS_TEMP_MIN + 1, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_5, SCREEN_DATC, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_MIX, GDS_VOLUME_DEFAULT, 0, 0,
-      1, SCREEN_DATC, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_SCREEN, SCREEN_DATC, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0,
-      1, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_2, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0,
-      1, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 1, 0));
-  ASSERT(expectButton(1, APP_BUTTON_3, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_MAX - 1, 0, 0,
-      1, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_MAX, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_3, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_MAX, 0, 0,
-      0, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_MAX, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_4, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_MIN + 1, 0, 0,
-      1, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_MIN, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_4, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_MIN, 0, 0,
-      0, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_MIN, 0, 0));
-  ASSERT(expectButton(1, APP_BUTTON_NONE, SCREEN_DATC, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0,
-      0, SCREEN_DATC, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0));
-  ASSERT(expectButton(1, 0xFF, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0,
-      0, SCREEN_INFO, HVAC_AUTO, 3, GDS_TEMP_DEFAULT, WIND_FACE, GDS_VOLUME_DEFAULT, 0, 0));
+  for (uint16_t i = 0; i < loop; i++) {
+    SystemState state;
+    initAppTestState(state);
+
+    ASSERT_EQUALS(0, handleEncoderAction(state, ENCODER_EVENT_DRIVER_CW), 1);
+    ASSERT_EQUALS(1, state.driverTemp, GDS_TEMP_DEFAULT + 1);
+    ASSERT_EQUALS(2, handleEncoderAction(state, ENCODER_EVENT_DRIVER_CCW), 1);
+    ASSERT_EQUALS(3, state.driverTemp, GDS_TEMP_DEFAULT);
+    ASSERT_EQUALS(4, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_CCW), 1);
+    ASSERT_EQUALS(5, state.passengerTemp, GDS_TEMP_DEFAULT - 1);
+    ASSERT_EQUALS(6, handleButtonAction(state, APP_BUTTON_FAN_UP), 1);
+    ASSERT_EQUALS(7, state.fanSpeed, 4);
+    ASSERT_EQUALS(8, handleButtonAction(state, APP_BUTTON_FAN_DOWN), 1);
+    ASSERT_EQUALS(9, state.fanSpeed, 3);
+    ASSERT_EQUALS(10, handleButtonAction(state, APP_BUTTON_WIND_RADIO), 1);
+    ASSERT_EQUALS(11, state.windMode, WIND_FOOT);
+    ASSERT_EQUALS(12, handleButtonAction(state, APP_BUTTON_SCREEN), 1);
+    ASSERT_EQUALS(13, state.screenMode, SCREEN_INFO);
+
+    ASSERT_EQUALS(14, handleEncoderAction(state, ENCODER_EVENT_DRIVER_CW), 1);
+    ASSERT_EQUALS(15, state.volume, GDS_VOLUME_DEFAULT + 1);
+    ASSERT_EQUALS(16, handleEncoderAction(state, ENCODER_EVENT_DRIVER_CCW), 1);
+    ASSERT_EQUALS(17, state.volume, GDS_VOLUME_DEFAULT);
+    ASSERT_EQUALS(18, handleEncoderAction(state, ENCODER_EVENT_DRIVER_SW), 1);
+    ASSERT_EQUALS(19, state.mute, 1);
+    ASSERT_EQUALS(20, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_CW), 0);
+    ASSERT_EQUALS(21, state.radioTune, GDS_RADIO_TUNE_DEFAULT);
+    ASSERT_EQUALS(22, handleButtonAction(state, APP_BUTTON_WIND_RADIO), 1);
+    ASSERT_EQUALS(23, state.radioMode, 1);
+    ASSERT_EQUALS(24, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_CW), 1);
+    ASSERT_EQUALS(25, state.radioTune, GDS_RADIO_TUNE_DEFAULT + 1);
+    ASSERT_EQUALS(26, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_SW), 1);
+    ASSERT_EQUALS(27, state.mediaReady, 1);
+    ASSERT_EQUALS(28, handleButtonAction(state, APP_BUTTON_FAN_UP), 1);
+    ASSERT_EQUALS(29, state.mapReady, 1);
+    ASSERT_EQUALS(30, handleButtonAction(state, APP_BUTTON_FAN_DOWN), 1);
+    ASSERT_EQUALS(31, state.navReady, 1);
+    ASSERT_EQUALS(32, handleButtonAction(state, APP_BUTTON_NONE), 0);
+    ASSERT_EQUALS(33, handleEncoderAction(state, ENCODER_EVENT_NONE), 0);
+  }
 
   SystemState pwmState;
-  pwmState.hvacMode = HVAC_OFF;
+  initAppTestState(pwmState);
   pwmState.fanSpeed = 5;
-  ASSERT_EQUALS(9, calculateFanPwm(pwmState), 0);
-  pwmState.hvacMode = HVAC_AUTO;
+  pwmState.windMode = WIND_OFF;
+  ASSERT_EQUALS(34, calculateFanPwm(pwmState), 0);
+  pwmState.windMode = WIND_FACE;
   pwmState.fanSpeed = GDS_FAN_SPEED_MAX;
-  ASSERT_EQUALS(10, calculateFanPwm(pwmState), GDS_FAN_PWM_MAX);
+  ASSERT_EQUALS(35, calculateFanPwm(pwmState), GDS_FAN_PWM_MAX);
   pwmState.fanSpeed = (GDS_FAN_SPEED_MIN + GDS_FAN_SPEED_MAX) / 2;
-  ASSERT_EQUALS(11, calculateFanPwm(pwmState) > GDS_FAN_PWM_MIN, 1);
-  ASSERT_EQUALS(12, shouldRefreshDisplay(150, 50, 100), 0);
-  ASSERT_EQUALS(13, shouldRefreshDisplay(151, 50, 100), 1);
-  ASSERT_EQUALS(14, shouldRefreshDisplay(200, 50, 100), 1);
-  ASSERT_EQUALS(15, shouldRefreshDisplay(120, 50, 100), 0);
+  ASSERT_EQUALS(36, calculateFanPwm(pwmState) > GDS_FAN_PWM_MIN, 1);
+  ASSERT_EQUALS(37, calculateStatusLed(pwmState), HIGH);
+  pwmState.fanSpeed = 0;
+  ASSERT_EQUALS(38, calculateStatusLed(pwmState), LOW);
+  ASSERT_EQUALS(39, shouldRefreshDisplay(150, 50, 100), 0);
+  ASSERT_EQUALS(40, shouldRefreshDisplay(151, 50, 100), 1);
+  ASSERT_EQUALS(41, shouldRefreshDisplay(200, 50, 100), 1);
+  ASSERT_EQUALS(42, shouldRefreshDisplay(120, 50, 100), 0);
+
   return 1;
 }

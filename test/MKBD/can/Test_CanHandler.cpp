@@ -8,14 +8,14 @@ static uint8_t expectCanNok(
     const CanPayload& request,
     uint8_t expErrorCode,
     int expFanSpeed,
-    int expSetTemp,
+    int expDriverTemp,
     int expVolume) {
   CanPayload response;
   ASSERT_EQUALS(0, canProcessControlRequest(state, request, response), 0);
   ASSERT_EQUALS(1, response.result, CAN_RESULT_FAIL);
   ASSERT_EQUALS(2, response.option, expErrorCode);
   ASSERT_EQUALS(3, state.fanSpeed, expFanSpeed);
-  ASSERT_EQUALS(4, state.setTemp, expSetTemp);
+  ASSERT_EQUALS(4, state.driverTemp, expDriverTemp);
   ASSERT_EQUALS(5, state.volume, expVolume);
   return 1;
 }
@@ -44,11 +44,11 @@ uint8_t Test_CanHandler(uint16_t loop) {
 
   request = canMakePayload(CAN_SERVICE_WRITE_REQUEST, CAN_RESULT_NORMAL, CAN_SIGNAL_TEMPERATURE, GDS_TEMP_MIN, 0, 4);
   ASSERT_EQUALS(9, canProcessControlRequest(state, request, response), 1);
-  ASSERT_EQUALS(10, state.setTemp, GDS_TEMP_MIN);
+  ASSERT_EQUALS(10, state.driverTemp, GDS_TEMP_MIN);
 
   request = canMakePayload(CAN_SERVICE_WRITE_REQUEST, CAN_RESULT_NORMAL, CAN_SIGNAL_TEMPERATURE, GDS_TEMP_MAX, 0, 5);
   ASSERT_EQUALS(11, canProcessControlRequest(state, request, response), 1);
-  ASSERT_EQUALS(12, state.setTemp, GDS_TEMP_MAX);
+  ASSERT_EQUALS(12, state.driverTemp, GDS_TEMP_MAX);
 
   request = canMakePayload(CAN_SERVICE_WRITE_REQUEST, CAN_RESULT_NORMAL, CAN_SIGNAL_TEMPERATURE, GDS_TEMP_MAX + 1, 0, 6);
   ASSERT_EQUALS(13, canProcessControlRequest(state, request, response), 0);
