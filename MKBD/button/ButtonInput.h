@@ -5,19 +5,17 @@
 #include "../app/AppLogic.h"
 
 struct ButtonLevels {
-  uint8_t btn2;
-  uint8_t btn3;
-  uint8_t btn4;
-  uint8_t btn5;
+  uint8_t fanUp;
+  uint8_t fanDown;
   uint8_t screen;
+  uint8_t windRadio;
 };
 
 struct ButtonHistory {
-  uint8_t prevBtn2;
-  uint8_t prevBtn3;
-  uint8_t prevBtn4;
-  uint8_t prevBtn5;
+  uint8_t prevFanUp;
+  uint8_t prevFanDown;
   uint8_t prevScreen;
+  uint8_t prevWindRadio;
   unsigned long lastEventTime;
 };
 

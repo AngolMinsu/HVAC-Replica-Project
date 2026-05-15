@@ -1,14 +1,7 @@
 #include "Info.h"
 #include "../GDS.h"
 
-uint8_t infoHandleButton2(SystemState& state) {
-  // MEDIA 기능은 추후 개발 예정
-  state.mediaReady = !state.mediaReady;
-
-  return 1;
-}
-
-uint8_t infoHandleButton3(SystemState& state) {
+uint8_t infoIncreaseVolume(SystemState& state) {
   int oldVolume = state.volume;
 
   state.volume++;
@@ -17,7 +10,7 @@ uint8_t infoHandleButton3(SystemState& state) {
   return state.volume != oldVolume;
 }
 
-uint8_t infoHandleButton4(SystemState& state) {
+uint8_t infoDecreaseVolume(SystemState& state) {
   int oldVolume = state.volume;
 
   state.volume--;
@@ -26,9 +19,48 @@ uint8_t infoHandleButton4(SystemState& state) {
   return state.volume != oldVolume;
 }
 
-uint8_t infoHandleButton5(SystemState& state) {
-  // MAP 기능은 추후 개발 예정
+uint8_t infoToggleMute(SystemState& state) {
+  state.mute = !state.mute;
+  return 1;
+}
+
+uint8_t infoTuneUp(SystemState& state) {
+  if (!state.radioMode) return 0;
+
+  int oldTune = state.radioTune;
+  if (state.radioTune < GDS_RADIO_TUNE_MAX) state.radioTune++;
+  return state.radioTune != oldTune;
+}
+
+uint8_t infoTuneDown(SystemState& state) {
+  if (!state.radioMode) return 0;
+
+  int oldTune = state.radioTune;
+  if (state.radioTune > GDS_RADIO_TUNE_MIN) state.radioTune--;
+  return state.radioTune != oldTune;
+}
+
+uint8_t infoSelect(SystemState& state) {
+  if (!state.radioMode) return 0;
+
+  state.mediaReady = !state.mediaReady;
+  return 1;
+}
+
+uint8_t infoHandleMap(SystemState& state) {
   state.mapReady = !state.mapReady;
+
+  return 1;
+}
+
+uint8_t infoHandleNav(SystemState& state) {
+  state.navReady = !state.navReady;
+
+  return 1;
+}
+
+uint8_t infoHandleRadio(SystemState& state) {
+  state.radioMode = !state.radioMode;
 
   return 1;
 }
@@ -52,20 +84,27 @@ void infoDrawScreen(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, const SystemSta
   display.drawStr(0, 10, "INFO MODE");
 
   display.setCursor(0, 24);
-  display.print("D2 MEDIA:");
-  display.print(state.mediaReady ? "READY" : "DEV");
+  display.print("VOL:");
+  display.print(state.mute ? "MUTE" : "");
+  if (!state.mute) {
+    display.print(state.volume);
+    display.print("/");
+    display.print(GDS_VOLUME_MAX);
+  }
 
   display.setCursor(0, 36);
-  display.print("VOL:");
-  display.print(state.volume);
-  display.print("/");
-  display.print(GDS_VOLUME_MAX);
+  display.print("RADIO:");
+  display.print(state.radioMode ? "ON" : "OFF");
+  display.print(" TUNE:");
+  display.print(state.radioTune);
 
   drawVolumeBar(display, state.volume);
 
   display.setCursor(0, 62);
-  display.print("D5 MAP:");
+  display.print("MAP:");
   display.print(state.mapReady ? "READY" : "DEV");
+  display.print(" NAV:");
+  display.print(state.navReady ? "ON" : "OFF");
 
   display.sendBuffer();
 }

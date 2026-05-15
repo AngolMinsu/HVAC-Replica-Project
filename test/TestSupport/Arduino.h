@@ -20,6 +20,22 @@
 #define D8 15
 #endif
 
+#ifndef A0
+#define A0 14
+#endif
+
+#ifndef A1
+#define A1 15
+#endif
+
+#ifndef A2
+#define A2 16
+#endif
+
+#ifndef A3
+#define A3 17
+#endif
+
 static inline int isDigit(char c) {
   return isdigit((unsigned char)c);
 }

@@ -7,6 +7,7 @@
 #include "display/Info.h"
 #include "app/AppLogic.h"
 #include "button/ButtonInput.h"
+#include "encoder/EncoderInput.h"
 #include "can/CanDriver.h"
 #include "can/CanHandler.h"
 #include "can/CanMonitor.h"
@@ -23,13 +24,17 @@
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);
 
 // ===== 핀 맵 =====
-#define BTN_2       GDS_PIN_BTN_2
-#define BTN_3       GDS_PIN_BTN_3
-#define BTN_4       GDS_PIN_BTN_4
-#define BTN_5       GDS_PIN_BTN_5
-#define BTN_SCREEN  GDS_PIN_BTN_SCREEN
+#define DRIVER_ENC_A     GDS_PIN_DRIVER_ENC_A
+#define DRIVER_ENC_B     GDS_PIN_DRIVER_ENC_B
+#define DRIVER_ENC_SW    GDS_PIN_DRIVER_ENC_SW
+#define BTN_FAN_UP       GDS_PIN_BTN_FAN_UP
+#define BTN_FAN_DOWN     GDS_PIN_BTN_FAN_DOWN
+#define BTN_SCREEN       GDS_PIN_BTN_SCREEN
+#define PSG_ENC_A        GDS_PIN_PASSENGER_ENC_A
+#define PSG_ENC_B        GDS_PIN_PASSENGER_ENC_B
+#define PSG_ENC_SW       GDS_PIN_PASSENGER_ENC_SW
+#define BTN_WIND_RADIO   GDS_PIN_BTN_WIND_RADIO
 
-#define LED_STATUS  GDS_PIN_LED_STATUS
 #define FAN_MOTOR   GDS_PIN_FAN_MOTOR
 #define CAN_CS      GDS_PIN_CAN_CS
 
@@ -38,6 +43,7 @@ SystemState state;
 
 // ===== 버튼 이전 상태 =====
 ButtonHistory buttonHistory;
+EncoderHistory encoderHistory;
 
 // ===== 디바운싱 =====
 const unsigned long debounceDelay = GDS_DEBOUNCE_DELAY_MS;
@@ -50,8 +56,9 @@ uint8_t canTxCounter = 0;
 
 ButtonLevels readButtonLevels();
 uint8_t readButtonEvent();
+EncoderLevels readEncoderLevels();
+uint8_t readEncoderEvent();
 int updateFanMotor();
-uint8_t updateStatusLED();
 uint8_t drawCurrentScreen();
 uint8_t printSystemStatus(const SystemState& s);
 uint8_t setupCan();
@@ -62,16 +69,19 @@ uint8_t broadcastChangedHvacStatus(const SystemState& before, const SystemState&
 uint8_t broadcastIfSignalChanged(const SystemState& before, const SystemState& after, uint8_t signal);
 
 void setup() {
-  pinMode(BTN_2, INPUT_PULLUP);
-  pinMode(BTN_3, INPUT_PULLUP);
-  pinMode(BTN_4, INPUT_PULLUP);
-  pinMode(BTN_5, INPUT_PULLUP);
+  pinMode(DRIVER_ENC_A, INPUT_PULLUP);
+  pinMode(DRIVER_ENC_B, INPUT_PULLUP);
+  pinMode(DRIVER_ENC_SW, INPUT_PULLUP);
+  pinMode(BTN_FAN_UP, INPUT_PULLUP);
+  pinMode(BTN_FAN_DOWN, INPUT_PULLUP);
   pinMode(BTN_SCREEN, INPUT_PULLUP);
+  pinMode(PSG_ENC_A, INPUT_PULLUP);
+  pinMode(PSG_ENC_B, INPUT_PULLUP);
+  pinMode(PSG_ENC_SW, INPUT_PULLUP);
+  pinMode(BTN_WIND_RADIO, INPUT_PULLUP);
 
-  pinMode(LED_STATUS, OUTPUT);
   pinMode(FAN_MOTOR, OUTPUT);
 
-  digitalWrite(LED_STATUS, LOW);
   analogWrite(FAN_MOTOR, 0);
 
   Serial.begin(9600);
@@ -85,6 +95,7 @@ void setup() {
 
   initSystemState(state);
   initButtonHistory(buttonHistory);
+  initEncoderHistory(encoderHistory);
 
   drawCurrentScreen();
   printSystemStatus(state);
@@ -101,12 +112,21 @@ void loop() {
     }
   }
 
+  uint8_t encoderEvent = readEncoderEvent();
+  if (encoderEvent != ENCODER_EVENT_NONE) {
+    SystemState before = state;
+    uint8_t changed = handleEncoderAction(state, encoderEvent);
+    if (changed) {
+      printSystemStatus(state);
+      broadcastChangedHvacStatus(before, state);
+    }
+  }
+
   if (processCanReceive()) {
     printSystemStatus(state);
   }
 
   // 화면이 INFO여도 공조 장치는 계속 동작해야 하므로 항상 실행
-  updateStatusLED();
   updateFanMotor();
 
   if (shouldRefreshDisplay(millis(), lastDisplayTime, displayInterval)) {
@@ -117,11 +137,10 @@ void loop() {
 
 ButtonLevels readButtonLevels() {
   ButtonLevels levels;
-  levels.btn2 = digitalRead(BTN_2);
-  levels.btn3 = digitalRead(BTN_3);
-  levels.btn4 = digitalRead(BTN_4);
-  levels.btn5 = digitalRead(BTN_5);
+  levels.fanUp = digitalRead(BTN_FAN_UP);
+  levels.fanDown = digitalRead(BTN_FAN_DOWN);
   levels.screen = digitalRead(BTN_SCREEN);
+  levels.windRadio = digitalRead(BTN_WIND_RADIO);
 
   return levels;
 }
@@ -131,19 +150,29 @@ uint8_t readButtonEvent() {
   return detectButtonEvent(buttonHistory, levels, millis(), debounceDelay);
 }
 
+EncoderLevels readEncoderLevels() {
+  EncoderLevels levels;
+  levels.driverA = digitalRead(DRIVER_ENC_A);
+  levels.driverB = digitalRead(DRIVER_ENC_B);
+  levels.driverSw = digitalRead(DRIVER_ENC_SW);
+  levels.passengerA = digitalRead(PSG_ENC_A);
+  levels.passengerB = digitalRead(PSG_ENC_B);
+  levels.passengerSw = digitalRead(PSG_ENC_SW);
+
+  return levels;
+}
+
+uint8_t readEncoderEvent() {
+  EncoderLevels levels = readEncoderLevels();
+  return detectEncoderEvent(encoderHistory, levels, millis(), debounceDelay);
+}
+
 int updateFanMotor() {
   int pwmValue = calculateFanPwm(state);
 
   analogWrite(FAN_MOTOR, pwmValue);
 
   return pwmValue;
-}
-
-uint8_t updateStatusLED() {
-  uint8_t ledValue = calculateStatusLed(state);
-  digitalWrite(LED_STATUS, ledValue);
-
-  return ledValue;
 }
 
 uint8_t drawCurrentScreen() {
@@ -163,12 +192,18 @@ uint8_t printSystemStatus(const SystemState& s) {
   Serial.print(hvacModeToText(s.hvacMode));
   Serial.print(" | FAN:");
   Serial.print(s.fanSpeed);
-  Serial.print(" | TEMP:");
-  Serial.print(s.setTemp);
+  Serial.print(" | DRV:");
+  Serial.print(s.driverTemp);
+  Serial.print(" | PSG:");
+  Serial.print(s.passengerTemp);
   Serial.print(" | AIR:");
   Serial.print(windModeToText(s.windMode));
   Serial.print(" | VOLUME:");
-  Serial.println(s.volume);
+  Serial.print(s.volume);
+  Serial.print(" | MUTE:");
+  Serial.print(s.mute ? "ON" : "OFF");
+  Serial.print(" | RADIO:");
+  Serial.println(s.radioMode ? "ON" : "OFF");
 
   return 1;
 }
@@ -271,6 +306,7 @@ uint8_t broadcastIfSignalChanged(const SystemState& before, const SystemState& a
 #include "display/Info.cpp"
 #include "app/AppLogic.cpp"
 #include "button/ButtonInput.cpp"
+#include "encoder/EncoderInput.cpp"
 #include "can/CanProtocol.cpp"
 #include "can/CanHandler.cpp"
 #include "can/CanMonitor.cpp"

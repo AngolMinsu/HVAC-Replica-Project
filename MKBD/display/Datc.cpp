@@ -1,44 +1,64 @@
 #include "Datc.h"
 #include "../GDS.h"
 
-uint8_t datcHandleButton2(SystemState& state) {
-  int nextMode = (int)state.hvacMode + 1;
-  if (nextMode > HVAC_AUTO) nextMode = HVAC_OFF;
-
-  state.hvacMode = (HvacMode)nextMode;
-
-  if (state.hvacMode == HVAC_OFF) {
-    state.fanSpeed = 0;
-  }
-
-  if (state.hvacMode != HVAC_OFF && state.fanSpeed == 0) {
-    state.fanSpeed = 1;
-  }
-
-  return 1;
+static uint8_t increaseTemp(int& temp) {
+  int oldTemp = temp;
+  if (temp < GDS_TEMP_MAX) temp++;
+  return temp != oldTemp;
 }
 
-uint8_t datcHandleButton3(SystemState& state) {
-  state.fanSpeed++;
-  if (state.fanSpeed > GDS_FAN_SPEED_MAX) state.fanSpeed = GDS_FAN_SPEED_MIN;
-
-  return 1;
+static uint8_t decreaseTemp(int& temp) {
+  int oldTemp = temp;
+  if (temp > GDS_TEMP_MIN) temp--;
+  return temp != oldTemp;
 }
 
-uint8_t datcHandleButton4(SystemState& state) {
-  state.setTemp++;
-  if (state.setTemp > GDS_TEMP_MAX) state.setTemp = GDS_TEMP_MIN;
-
-  return 1;
+uint8_t datcIncreaseDriverTemp(SystemState& state) {
+  return increaseTemp(state.driverTemp);
 }
 
-uint8_t datcHandleButton5(SystemState& state) {
+uint8_t datcDecreaseDriverTemp(SystemState& state) {
+  return decreaseTemp(state.driverTemp);
+}
+
+uint8_t datcIncreasePassengerTemp(SystemState& state) {
+  return increaseTemp(state.passengerTemp);
+}
+
+uint8_t datcDecreasePassengerTemp(SystemState& state) {
+  return decreaseTemp(state.passengerTemp);
+}
+
+uint8_t datcIncreaseFanSpeed(SystemState& state) {
+  int oldFanSpeed = state.fanSpeed;
+  if (state.fanSpeed < GDS_FAN_SPEED_MAX) state.fanSpeed++;
+  return state.fanSpeed != oldFanSpeed;
+}
+
+uint8_t datcDecreaseFanSpeed(SystemState& state) {
+  int oldFanSpeed = state.fanSpeed;
+  if (state.fanSpeed > GDS_FAN_SPEED_MIN) state.fanSpeed--;
+  return state.fanSpeed != oldFanSpeed;
+}
+
+uint8_t datcCycleWindMode(SystemState& state) {
   int nextWind = (int)state.windMode + 1;
-  if (nextWind > WIND_MIX) nextWind = WIND_FACE;
+  if (nextWind > WIND_OFF) nextWind = WIND_FACE;
 
   state.windMode = (WindMode)nextWind;
 
   return 1;
+}
+
+static void printTemp(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, int temp) {
+  if (temp <= GDS_TEMP_MIN) {
+    display.print("LO");
+  } else if (temp >= GDS_TEMP_MAX) {
+    display.print("HI");
+  } else {
+    display.print(temp);
+    display.print("C");
+  }
 }
 
 static void drawFanBar(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, int level) {
@@ -68,10 +88,9 @@ void datcDrawScreen(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, const SystemSta
   display.print("HVAC:");
   display.print(hvacModeToText(state.hvacMode));
 
-  display.setCursor(72, 24);
-  display.print("SET:");
-  display.print(state.setTemp);
-  display.print("C");
+  display.setCursor(66, 24);
+  display.print("DRV:");
+  printTemp(display, state.driverTemp);
 
   display.setCursor(0, 38);
   display.print("FAN:");
@@ -79,14 +98,20 @@ void datcDrawScreen(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, const SystemSta
   display.print("/");
   display.print(GDS_FAN_SPEED_MAX);
 
-  display.setCursor(72, 38);
+  display.setCursor(66, 38);
+  display.print("PSG:");
+  printTemp(display, state.passengerTemp);
+
+  display.setCursor(0, 52);
   display.print("AIR:");
   display.print(windModeToText(state.windMode));
 
-  drawFanBar(display, state.fanSpeed);
+  drawFanBar(display, state.windMode == WIND_OFF ? 0 : state.fanSpeed);
 
   display.setCursor(0, 64);
-  if (state.hvacMode == HVAC_AUTO) {
+  if (state.windMode == WIND_OFF || state.fanSpeed == 0) {
+    display.print("Fan output off");
+  } else if (state.hvacMode == HVAC_AUTO) {
     display.print("AUTO: SENSOR READY");
   } else if (state.hvacMode == HVAC_AC) {
     display.print("Cooling mode");

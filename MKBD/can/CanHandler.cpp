@@ -44,7 +44,7 @@ uint8_t canSignalValueFromState(const SystemState& state, uint8_t signal, uint8_
       return 1;
 
     case CAN_SIGNAL_TEMPERATURE:
-      value = (uint8_t)state.setTemp;
+      value = (uint8_t)state.driverTemp;
       return 1;
 
     case CAN_SIGNAL_MODE:
@@ -114,7 +114,7 @@ uint8_t canApplyWriteRequest(SystemState& state, const CanPayload& request) {
 
     case CAN_SIGNAL_TEMPERATURE:
       if (!isValidTemperature(request.value)) return 0;
-      state.setTemp = request.value;
+      state.driverTemp = request.value;
       return 1;
 
     case CAN_SIGNAL_MODE:
