@@ -34,7 +34,12 @@ enum CanSignal : uint8_t {
   CAN_SIGNAL_SCREEN_MODE = GDS_CAN_SIGNAL_SCREEN_MODE,
   CAN_SIGNAL_MEDIA = GDS_CAN_SIGNAL_MEDIA,
   CAN_SIGNAL_VOLUME = GDS_CAN_SIGNAL_VOLUME,
-  CAN_SIGNAL_MAP = GDS_CAN_SIGNAL_MAP
+  CAN_SIGNAL_MAP = GDS_CAN_SIGNAL_MAP,
+  CAN_SIGNAL_PASSENGER_TEMPERATURE = GDS_CAN_SIGNAL_PASSENGER_TEMPERATURE,
+  CAN_SIGNAL_MUTE = GDS_CAN_SIGNAL_MUTE,
+  CAN_SIGNAL_NAV = GDS_CAN_SIGNAL_NAV,
+  CAN_SIGNAL_RADIO_MODE = GDS_CAN_SIGNAL_RADIO_MODE,
+  CAN_SIGNAL_RADIO_TUNE = GDS_CAN_SIGNAL_RADIO_TUNE
 };
 
 enum CanErrorCode : uint8_t {
@@ -49,14 +54,14 @@ enum CanErrorCode : uint8_t {
 };
 
 struct CanPayload {
-  uint8_t service;
-  uint8_t result;
-  uint8_t signal;
-  uint8_t value;
-  uint8_t option;
-  uint8_t reserved;
-  uint8_t counter;
-  uint8_t checksum;
+  uint8_t service;   // D0: request / response type
+  uint8_t result;    // D1: normal / success / fail
+  uint8_t signal;    // D2: control or status target
+  uint8_t value;     // D3: signal value
+  uint8_t option;    // D4: option or error code on fail
+  uint8_t reserved;  // D5: reserved for expansion
+  uint8_t counter;   // D6: alive counter
+  uint8_t checksum;  // D7: D0~D6 XOR
 };
 
 uint8_t canCalculateChecksum(const CanPayload& payload);

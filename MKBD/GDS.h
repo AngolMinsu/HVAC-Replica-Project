@@ -19,6 +19,7 @@ const uint8_t GDS_PIN_BTN_WIND_RADIO = A3;
 
 // Timing
 const unsigned long GDS_DEBOUNCE_DELAY_MS = 60;
+const unsigned long GDS_ENCODER_DEBOUNCE_DELAY_MS = 5;
 const unsigned long GDS_DISPLAY_INTERVAL_MS = 100;
 
 // HVAC / INFO state ranges
@@ -69,6 +70,11 @@ const uint8_t GDS_CAN_SIGNAL_SCREEN_MODE = 0x08;
 const uint8_t GDS_CAN_SIGNAL_MEDIA = 0x09;
 const uint8_t GDS_CAN_SIGNAL_VOLUME = 0x0A;
 const uint8_t GDS_CAN_SIGNAL_MAP = 0x0B;
+const uint8_t GDS_CAN_SIGNAL_PASSENGER_TEMPERATURE = 0x0C;
+const uint8_t GDS_CAN_SIGNAL_MUTE = 0x0D;
+const uint8_t GDS_CAN_SIGNAL_NAV = 0x0E;
+const uint8_t GDS_CAN_SIGNAL_RADIO_MODE = 0x0F;
+const uint8_t GDS_CAN_SIGNAL_RADIO_TUNE = 0x10;
 
 // CAN error values for payload Option byte on failure responses
 const uint8_t GDS_CAN_ERROR_NONE = 0x00;

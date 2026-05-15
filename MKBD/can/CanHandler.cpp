@@ -10,7 +10,7 @@ static uint8_t isValidTemperature(uint8_t value) {
 }
 
 static uint8_t isValidWindMode(uint8_t value) {
-  return value <= WIND_MIX;
+  return value <= WIND_OFF;
 }
 
 static uint8_t isValidScreenMode(uint8_t value) {
@@ -21,12 +21,16 @@ static uint8_t isValidVolume(uint8_t value) {
   return value <= GDS_VOLUME_MAX;
 }
 
+static uint8_t isValidRadioTune(uint8_t value) {
+  return value <= GDS_RADIO_TUNE_MAX;
+}
+
 static uint8_t isPowerOn(const SystemState& state) {
   return state.hvacMode == HVAC_OFF ? 0 : 1;
 }
 
 static uint8_t isKnownSignal(uint8_t signal) {
-  return signal >= CAN_SIGNAL_POWER && signal <= CAN_SIGNAL_MAP;
+  return signal >= CAN_SIGNAL_POWER && signal <= CAN_SIGNAL_RADIO_TUNE;
 }
 
 static CanPayload canMakeFailResponse(const CanPayload& request, uint8_t service, uint8_t errorCode) {
@@ -44,7 +48,12 @@ uint8_t canSignalValueFromState(const SystemState& state, uint8_t signal, uint8_
       return 1;
 
     case CAN_SIGNAL_TEMPERATURE:
+      // v0.2: CAN Temperature represents the driver-side DATC temperature.
       value = (uint8_t)state.driverTemp;
+      return 1;
+
+    case CAN_SIGNAL_PASSENGER_TEMPERATURE:
+      value = (uint8_t)state.passengerTemp;
       return 1;
 
     case CAN_SIGNAL_MODE:
@@ -77,6 +86,22 @@ uint8_t canSignalValueFromState(const SystemState& state, uint8_t signal, uint8_
 
     case CAN_SIGNAL_MAP:
       value = state.mapReady ? 1 : 0;
+      return 1;
+
+    case CAN_SIGNAL_MUTE:
+      value = state.mute ? 1 : 0;
+      return 1;
+
+    case CAN_SIGNAL_NAV:
+      value = state.navReady ? 1 : 0;
+      return 1;
+
+    case CAN_SIGNAL_RADIO_MODE:
+      value = state.radioMode ? 1 : 0;
+      return 1;
+
+    case CAN_SIGNAL_RADIO_TUNE:
+      value = (uint8_t)state.radioTune;
       return 1;
 
     default:
@@ -115,6 +140,11 @@ uint8_t canApplyWriteRequest(SystemState& state, const CanPayload& request) {
     case CAN_SIGNAL_TEMPERATURE:
       if (!isValidTemperature(request.value)) return 0;
       state.driverTemp = request.value;
+      return 1;
+
+    case CAN_SIGNAL_PASSENGER_TEMPERATURE:
+      if (!isValidTemperature(request.value)) return 0;
+      state.passengerTemp = request.value;
       return 1;
 
     case CAN_SIGNAL_MODE:
@@ -166,6 +196,26 @@ uint8_t canApplyWriteRequest(SystemState& state, const CanPayload& request) {
       state.mapReady = request.value == 1;
       return 1;
 
+    case CAN_SIGNAL_MUTE:
+      if (request.value > 1) return 0;
+      state.mute = request.value == 1;
+      return 1;
+
+    case CAN_SIGNAL_NAV:
+      if (request.value > 1) return 0;
+      state.navReady = request.value == 1;
+      return 1;
+
+    case CAN_SIGNAL_RADIO_MODE:
+      if (request.value > 1) return 0;
+      state.radioMode = request.value == 1;
+      return 1;
+
+    case CAN_SIGNAL_RADIO_TUNE:
+      if (!isValidRadioTune(request.value)) return 0;
+      state.radioTune = request.value;
+      return 1;
+
     default:
       return 0;
   }
@@ -187,6 +237,7 @@ uint8_t canValidateWriteRequest(const CanPayload& request) {
       return isValidFanSpeed(request.value) ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
 
     case CAN_SIGNAL_TEMPERATURE:
+    case CAN_SIGNAL_PASSENGER_TEMPERATURE:
       return isValidTemperature(request.value) ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
 
     case CAN_SIGNAL_MODE:
@@ -197,10 +248,16 @@ uint8_t canValidateWriteRequest(const CanPayload& request) {
 
     case CAN_SIGNAL_MEDIA:
     case CAN_SIGNAL_MAP:
+    case CAN_SIGNAL_MUTE:
+    case CAN_SIGNAL_NAV:
+    case CAN_SIGNAL_RADIO_MODE:
       return request.value <= 1 ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
 
     case CAN_SIGNAL_VOLUME:
       return isValidVolume(request.value) ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
+
+    case CAN_SIGNAL_RADIO_TUNE:
+      return isValidRadioTune(request.value) ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
 
     default:
       return CAN_ERROR_UNSUPPORTED_SIGNAL;

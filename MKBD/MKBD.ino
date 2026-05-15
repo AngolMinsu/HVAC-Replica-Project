@@ -47,6 +47,7 @@ EncoderHistory encoderHistory;
 
 // ===== 디바운싱 =====
 const unsigned long debounceDelay = GDS_DEBOUNCE_DELAY_MS;
+const unsigned long encoderDebounceDelay = GDS_ENCODER_DEBOUNCE_DELAY_MS;
 
 // ===== 화면 갱신 =====
 unsigned long lastDisplayTime = 0;
@@ -164,7 +165,7 @@ EncoderLevels readEncoderLevels() {
 
 uint8_t readEncoderEvent() {
   EncoderLevels levels = readEncoderLevels();
-  return detectEncoderEvent(encoderHistory, levels, millis(), debounceDelay);
+  return detectEncoderEvent(encoderHistory, levels, millis(), encoderDebounceDelay);
 }
 
 int updateFanMotor() {
@@ -274,6 +275,7 @@ uint8_t broadcastChangedHvacStatus(const SystemState& before, const SystemState&
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_POWER);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_FAN_SPEED);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_TEMPERATURE);
+  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_PASSENGER_TEMPERATURE);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MODE);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_AC);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_AUTO);
@@ -281,6 +283,10 @@ uint8_t broadcastChangedHvacStatus(const SystemState& before, const SystemState&
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MEDIA);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_VOLUME);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MAP);
+  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MUTE);
+  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_NAV);
+  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_RADIO_MODE);
+  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_RADIO_TUNE);
 
   return sentCount;
 }
