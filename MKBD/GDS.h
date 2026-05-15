@@ -4,14 +4,18 @@
 #include <Arduino.h>
 
 // Hardware pins
-const uint8_t GDS_PIN_BTN_2 = 2;
-const uint8_t GDS_PIN_BTN_3 = 3;
-const uint8_t GDS_PIN_BTN_4 = 4;
-const uint8_t GDS_PIN_BTN_5 = 5;
-const uint8_t GDS_PIN_BTN_SCREEN = 6;
-const uint8_t GDS_PIN_LED_STATUS = 7;
+const uint8_t GDS_PIN_DRIVER_ENC_A = 2;
+const uint8_t GDS_PIN_DRIVER_ENC_B = 3;
+const uint8_t GDS_PIN_DRIVER_ENC_SW = 4;
+const uint8_t GDS_PIN_BTN_FAN_UP = 5;
+const uint8_t GDS_PIN_BTN_FAN_DOWN = 6;
+const uint8_t GDS_PIN_BTN_SCREEN = 7;
 const uint8_t GDS_PIN_FAN_MOTOR = 9;
 const uint8_t GDS_PIN_CAN_CS = 10;
+const uint8_t GDS_PIN_PASSENGER_ENC_A = A0;
+const uint8_t GDS_PIN_PASSENGER_ENC_B = A1;
+const uint8_t GDS_PIN_PASSENGER_ENC_SW = A2;
+const uint8_t GDS_PIN_BTN_WIND_RADIO = A3;
 
 // Timing
 const unsigned long GDS_DEBOUNCE_DELAY_MS = 60;
@@ -26,6 +30,9 @@ const uint8_t GDS_TEMP_MAX = 30;
 const uint8_t GDS_VOLUME_MIN = 0;
 const uint8_t GDS_VOLUME_DEFAULT = 10;
 const uint8_t GDS_VOLUME_MAX = 30;
+const uint8_t GDS_RADIO_TUNE_MIN = 0;
+const uint8_t GDS_RADIO_TUNE_DEFAULT = 10;
+const uint8_t GDS_RADIO_TUNE_MAX = 30;
 
 // Fan PWM policy
 const int GDS_FAN_PWM_OFF = 0;
