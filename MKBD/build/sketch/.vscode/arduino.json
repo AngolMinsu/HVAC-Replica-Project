@@ -1,7 +1,0 @@
-#line 1 "E:\\030_Portfolio\\010_Arduino\\040_CAN\\HVAC Replica\\main\\.vscode\\arduino.json"
-{
-    "sketch": "main.ino",
-    "output": "build",
-    "port": "COM9",
-    "board": "arduino:renesas_uno:minima"
-}

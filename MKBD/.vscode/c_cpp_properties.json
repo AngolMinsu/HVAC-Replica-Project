@@ -37,7 +37,7 @@
                 "F_CPU=48000000",
                 "ARDUINO_UNOR4_MINIMA",
                 "ARDUINO=10607",
-                "PROJECT_NAME=\"E:\\030_Portfolio\\010_Arduino\\040_CAN\\HVAC Replica\\main\\build/main.ino\"",
+                "PROJECT_NAME=\"E:\\030_Portfolio\\010_Arduino\\040_CAN\\HVAC Replica\\MKBD\\build/MKBD.ino\"",
                 "ARDUINO_MINIMA",
                 "ARDUINO_ARCH_RENESAS_UNO",
                 "ARDUINO_ARCH_RENESAS",

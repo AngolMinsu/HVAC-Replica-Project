@@ -63,7 +63,7 @@ static void printTemp(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, int temp) {
 
 static void drawFanBar(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, int level) {
   int x = 0;
-  int y = 44;
+  int y = 52;
   int w = 10;
   int h = 8;
 
@@ -84,42 +84,29 @@ void datcDrawScreen(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, const SystemSta
 
   display.drawStr(0, 10, "DATC MODE");
 
-  display.setCursor(0, 24);
+  display.setCursor(70, 10);
   display.print("HVAC:");
   display.print(hvacModeToText(state.hvacMode));
 
-  display.setCursor(66, 24);
-  display.print("DRV:");
-  printTemp(display, state.driverTemp);
-
-  display.setCursor(0, 38);
+  display.setCursor(0, 24);
   display.print("FAN:");
   display.print(state.fanSpeed);
   display.print("/");
   display.print(GDS_FAN_SPEED_MAX);
 
-  display.setCursor(66, 38);
-  display.print("PSG:");
-  printTemp(display, state.passengerTemp);
-
-  display.setCursor(0, 52);
+  display.setCursor(70, 24);
   display.print("AIR:");
   display.print(windModeToText(state.windMode));
 
-  drawFanBar(display, state.windMode == WIND_OFF ? 0 : state.fanSpeed);
+  display.setCursor(0, 40);
+  display.print("DRV:");
+  printTemp(display, state.driverTemp);
 
-  display.setCursor(0, 64);
-  if (state.windMode == WIND_OFF || state.fanSpeed == 0) {
-    display.print("Fan output off");
-  } else if (state.hvacMode == HVAC_AUTO) {
-    display.print("AUTO: SENSOR READY");
-  } else if (state.hvacMode == HVAC_AC) {
-    display.print("Cooling mode");
-  } else if (state.hvacMode == HVAC_HEAT) {
-    display.print("Heating mode");
-  } else {
-    display.print("System off");
-  }
+  display.setCursor(70, 40);
+  display.print("PSG:");
+  printTemp(display, state.passengerTemp);
+
+  drawFanBar(display, state.windMode == WIND_OFF ? 0 : state.fanSpeed);
 
   display.sendBuffer();
 }

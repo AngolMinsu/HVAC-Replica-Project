@@ -1,6 +1,6 @@
 #include "EncoderInput.h"
 
-static uint8_t isFallingEdge(uint8_t previousLevel, uint8_t currentLevel) {
+static uint8_t isEncoderFallingEdge(uint8_t previousLevel, uint8_t currentLevel) {
   return previousLevel == HIGH && currentLevel == LOW;
 }
 
@@ -18,13 +18,13 @@ uint8_t detectEncoderEvent(EncoderHistory& history, const EncoderLevels& levels,
   uint8_t event = ENCODER_EVENT_NONE;
 
   if (now - history.lastEventTime > debounceDelay) {
-    if (isFallingEdge(history.prevDriverSw, levels.driverSw)) {
+    if (isEncoderFallingEdge(history.prevDriverSw, levels.driverSw)) {
       event = ENCODER_EVENT_DRIVER_SW;
-    } else if (isFallingEdge(history.prevPassengerSw, levels.passengerSw)) {
+    } else if (isEncoderFallingEdge(history.prevPassengerSw, levels.passengerSw)) {
       event = ENCODER_EVENT_PASSENGER_SW;
-    } else if (isFallingEdge(history.prevDriverA, levels.driverA)) {
+    } else if (isEncoderFallingEdge(history.prevDriverA, levels.driverA)) {
       event = (levels.driverB == HIGH) ? ENCODER_EVENT_DRIVER_CW : ENCODER_EVENT_DRIVER_CCW;
-    } else if (isFallingEdge(history.prevPassengerA, levels.passengerA)) {
+    } else if (isEncoderFallingEdge(history.prevPassengerA, levels.passengerA)) {
       event = (levels.passengerB == HIGH) ? ENCODER_EVENT_PASSENGER_CW : ENCODER_EVENT_PASSENGER_CCW;
     }
 

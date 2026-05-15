@@ -65,18 +65,6 @@ uint8_t infoHandleRadio(SystemState& state) {
   return 1;
 }
 
-static void drawVolumeBar(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, int volume) {
-  int x = 0;
-  int y = 42;
-  int w = 100;
-  int h = 8;
-
-  display.drawFrame(x, y, w, h);
-
-  int fillWidth = map(volume, GDS_VOLUME_MIN, GDS_VOLUME_MAX, 0, w - 2);
-  display.drawBox(x + 1, y + 1, fillWidth, h - 2);
-}
-
 void infoDrawScreen(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, const SystemState& state) {
   display.clearBuffer();
   display.setFont(u8g2_font_6x12_tr);
@@ -85,26 +73,37 @@ void infoDrawScreen(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, const SystemSta
 
   display.setCursor(0, 24);
   display.print("VOL:");
-  display.print(state.mute ? "MUTE" : "");
-  if (!state.mute) {
+  if (state.mute) {
+    display.print("MUTE");
+  } else {
     display.print(state.volume);
     display.print("/");
     display.print(GDS_VOLUME_MAX);
   }
 
-  display.setCursor(0, 36);
+  display.setCursor(70, 24);
+  display.print("MUTE:");
+  display.print(state.mute ? "ON" : "OFF");
+
+  display.setCursor(0, 38);
   display.print("RADIO:");
   display.print(state.radioMode ? "ON" : "OFF");
-  display.print(" TUNE:");
+
+  display.setCursor(70, 38);
+  display.print("TUNE:");
   display.print(state.radioTune);
 
-  drawVolumeBar(display, state.volume);
-
-  display.setCursor(0, 62);
+  display.setCursor(0, 52);
   display.print("MAP:");
-  display.print(state.mapReady ? "READY" : "DEV");
-  display.print(" NAV:");
+  display.print(state.mapReady ? "ON" : "OFF");
+
+  display.setCursor(70, 52);
+  display.print("NAV:");
   display.print(state.navReady ? "ON" : "OFF");
+
+  display.setCursor(0, 64);
+  display.print("MEDIA:");
+  display.print(state.mediaReady ? "READY" : "DEV");
 
   display.sendBuffer();
 }
