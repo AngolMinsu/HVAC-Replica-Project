@@ -11,25 +11,49 @@ uint8_t handleButtonAction(SystemState& state, uint8_t button) {
 
   if (state.screenMode == SCREEN_DATC) {
     switch (button) {
-      case APP_BUTTON_2: return datcHandleButton2(state);
-      case APP_BUTTON_3: return datcHandleButton3(state);
-      case APP_BUTTON_4: return datcHandleButton4(state);
-      case APP_BUTTON_5: return datcHandleButton5(state);
+      case APP_BUTTON_FAN_UP: return datcIncreaseFanSpeed(state);
+      case APP_BUTTON_FAN_DOWN: return datcDecreaseFanSpeed(state);
+      case APP_BUTTON_WIND_RADIO: return datcCycleWindMode(state);
       default: return 0;
     }
   }
 
   switch (button) {
-    case APP_BUTTON_2: return infoHandleButton2(state);
-    case APP_BUTTON_3: return infoHandleButton3(state);
-    case APP_BUTTON_4: return infoHandleButton4(state);
-    case APP_BUTTON_5: return infoHandleButton5(state);
+    case APP_BUTTON_FAN_UP: return infoHandleMap(state);
+    case APP_BUTTON_FAN_DOWN: return infoHandleNav(state);
+    case APP_BUTTON_WIND_RADIO: return infoHandleRadio(state);
+    default: return 0;
+  }
+}
+
+uint8_t handleEncoderAction(SystemState& state, uint8_t encoderEvent) {
+  if (encoderEvent == ENCODER_EVENT_NONE) {
+    return 0;
+  }
+
+  if (state.screenMode == SCREEN_DATC) {
+    switch (encoderEvent) {
+      case ENCODER_EVENT_DRIVER_CW: return datcIncreaseDriverTemp(state);
+      case ENCODER_EVENT_DRIVER_CCW: return datcDecreaseDriverTemp(state);
+      case ENCODER_EVENT_PASSENGER_CW: return datcIncreasePassengerTemp(state);
+      case ENCODER_EVENT_PASSENGER_CCW: return datcDecreasePassengerTemp(state);
+      default: return 0;
+    }
+  }
+
+  switch (encoderEvent) {
+    case ENCODER_EVENT_DRIVER_CW: return infoIncreaseVolume(state);
+    case ENCODER_EVENT_DRIVER_CCW: return infoDecreaseVolume(state);
+    case ENCODER_EVENT_DRIVER_SW: return infoToggleMute(state);
+    case ENCODER_EVENT_PASSENGER_CW: return infoTuneUp(state);
+    case ENCODER_EVENT_PASSENGER_CCW: return infoTuneDown(state);
+    case ENCODER_EVENT_PASSENGER_SW: return infoSelect(state);
     default: return 0;
   }
 }
 
 int calculateFanPwm(const SystemState& state) {
-  if (state.hvacMode == HVAC_OFF || state.fanSpeed <= 0) {
+  if (state.windMode == WIND_OFF || state.fanSpeed <= 0) {
     return 0;
   }
 
@@ -43,7 +67,7 @@ int calculateFanPwm(const SystemState& state) {
 }
 
 uint8_t calculateStatusLed(const SystemState& state) {
-  return state.hvacMode == HVAC_OFF ? LOW : HIGH;
+  return calculateFanPwm(state) == 0 ? LOW : HIGH;
 }
 
 uint8_t shouldRefreshDisplay(unsigned long now, unsigned long lastDisplayTime, unsigned long interval) {
