@@ -66,6 +66,7 @@ uint8_t setupCan();
 uint8_t processCanReceive();
 uint8_t sendCanPayload(uint16_t id, const CanPayload& payload);
 uint8_t broadcastHvacStatus(uint8_t signal);
+uint8_t broadcastEncoderSwitchEvent(uint8_t encoderEvent);
 uint8_t broadcastChangedHvacStatus(const SystemState& before, const SystemState& after);
 uint8_t broadcastIfSignalChanged(const SystemState& before, const SystemState& after, uint8_t signal);
 
@@ -121,6 +122,7 @@ void loop() {
       printSystemStatus(state);
       broadcastChangedHvacStatus(before, state);
     }
+    broadcastEncoderSwitchEvent(encoderEvent);
   }
 
   if (processCanReceive()) {
@@ -267,6 +269,18 @@ uint8_t broadcastHvacStatus(uint8_t signal) {
   CanPayload payload = canMakeStatusPayload(state, signal, canTxCounter++);
 
   return sendCanPayload(CAN_ID_HVAC_STATUS, payload);
+}
+
+uint8_t broadcastEncoderSwitchEvent(uint8_t encoderEvent) {
+  if (encoderEvent == ENCODER_EVENT_DRIVER_SW) {
+    return broadcastHvacStatus(CAN_SIGNAL_DRIVER_ENCODER_SW);
+  }
+
+  if (encoderEvent == ENCODER_EVENT_PASSENGER_SW) {
+    return broadcastHvacStatus(CAN_SIGNAL_PASSENGER_ENCODER_SW);
+  }
+
+  return 0;
 }
 
 uint8_t broadcastChangedHvacStatus(const SystemState& before, const SystemState& after) {

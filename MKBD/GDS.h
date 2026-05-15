@@ -75,6 +75,8 @@ const uint8_t GDS_CAN_SIGNAL_MUTE = 0x0D;
 const uint8_t GDS_CAN_SIGNAL_NAV = 0x0E;
 const uint8_t GDS_CAN_SIGNAL_RADIO_MODE = 0x0F;
 const uint8_t GDS_CAN_SIGNAL_RADIO_TUNE = 0x10;
+const uint8_t GDS_CAN_SIGNAL_DRIVER_ENCODER_SW = 0x11;
+const uint8_t GDS_CAN_SIGNAL_PASSENGER_ENCODER_SW = 0x12;
 
 // CAN error values for payload Option byte on failure responses
 const uint8_t GDS_CAN_ERROR_NONE = 0x00;

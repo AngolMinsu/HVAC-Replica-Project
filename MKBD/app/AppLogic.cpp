@@ -35,8 +35,10 @@ uint8_t handleEncoderAction(SystemState& state, uint8_t encoderEvent) {
     switch (encoderEvent) {
       case ENCODER_EVENT_DRIVER_CW: return datcIncreaseDriverTemp(state);
       case ENCODER_EVENT_DRIVER_CCW: return datcDecreaseDriverTemp(state);
+      case ENCODER_EVENT_DRIVER_SW: return 0;
       case ENCODER_EVENT_PASSENGER_CW: return datcIncreasePassengerTemp(state);
       case ENCODER_EVENT_PASSENGER_CCW: return datcDecreasePassengerTemp(state);
+      case ENCODER_EVENT_PASSENGER_SW: return 0;
       default: return 0;
     }
   }

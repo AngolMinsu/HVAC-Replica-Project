@@ -30,7 +30,7 @@ static uint8_t isPowerOn(const SystemState& state) {
 }
 
 static uint8_t isKnownSignal(uint8_t signal) {
-  return signal >= CAN_SIGNAL_POWER && signal <= CAN_SIGNAL_RADIO_TUNE;
+  return signal >= CAN_SIGNAL_POWER && signal <= CAN_SIGNAL_PASSENGER_ENCODER_SW;
 }
 
 static CanPayload canMakeFailResponse(const CanPayload& request, uint8_t service, uint8_t errorCode) {
@@ -102,6 +102,11 @@ uint8_t canSignalValueFromState(const SystemState& state, uint8_t signal, uint8_
 
     case CAN_SIGNAL_RADIO_TUNE:
       value = (uint8_t)state.radioTune;
+      return 1;
+
+    case CAN_SIGNAL_DRIVER_ENCODER_SW:
+    case CAN_SIGNAL_PASSENGER_ENCODER_SW:
+      value = 1;
       return 1;
 
     default:
@@ -216,6 +221,10 @@ uint8_t canApplyWriteRequest(SystemState& state, const CanPayload& request) {
       state.radioTune = request.value;
       return 1;
 
+    case CAN_SIGNAL_DRIVER_ENCODER_SW:
+    case CAN_SIGNAL_PASSENGER_ENCODER_SW:
+      return request.value <= 1;
+
     default:
       return 0;
   }
@@ -251,6 +260,8 @@ uint8_t canValidateWriteRequest(const CanPayload& request) {
     case CAN_SIGNAL_MUTE:
     case CAN_SIGNAL_NAV:
     case CAN_SIGNAL_RADIO_MODE:
+    case CAN_SIGNAL_DRIVER_ENCODER_SW:
+    case CAN_SIGNAL_PASSENGER_ENCODER_SW:
       return request.value <= 1 ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
 
     case CAN_SIGNAL_VOLUME:
