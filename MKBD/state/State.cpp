@@ -15,8 +15,8 @@ void initSystemState(SystemState& state) {
   state.mediaReady = false;
   state.mapReady = false;
   state.navReady = false;
-  state.radioMode = false;
-  state.radioTune = GDS_RADIO_TUNE_DEFAULT;
+  state.mediaMode = false;
+  state.mediaIndex = GDS_MEDIA_INDEX_DEFAULT;
 }
 
 void toggleScreenMode(SystemState& state) {

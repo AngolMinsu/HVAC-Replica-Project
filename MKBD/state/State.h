@@ -35,8 +35,8 @@ struct SystemState {
   bool mediaReady;
   bool mapReady;
   bool navReady;
-  bool radioMode;
-  int radioTune;
+  bool mediaMode;
+  int mediaIndex;
 };
 
 void initSystemState(SystemState& state);

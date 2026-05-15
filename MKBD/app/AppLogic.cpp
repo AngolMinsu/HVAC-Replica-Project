@@ -13,7 +13,7 @@ uint8_t handleButtonAction(SystemState& state, uint8_t button) {
     switch (button) {
       case APP_BUTTON_FAN_UP: return datcIncreaseFanSpeed(state);
       case APP_BUTTON_FAN_DOWN: return datcDecreaseFanSpeed(state);
-      case APP_BUTTON_WIND_RADIO: return datcCycleWindMode(state);
+      case APP_BUTTON_WIND_MEDIA: return datcCycleWindMode(state);
       default: return 0;
     }
   }
@@ -21,7 +21,7 @@ uint8_t handleButtonAction(SystemState& state, uint8_t button) {
   switch (button) {
     case APP_BUTTON_FAN_UP: return infoHandleMap(state);
     case APP_BUTTON_FAN_DOWN: return infoHandleNav(state);
-    case APP_BUTTON_WIND_RADIO: return infoHandleRadio(state);
+    case APP_BUTTON_WIND_MEDIA: return infoHandleMedia(state);
     default: return 0;
   }
 }
@@ -47,8 +47,8 @@ uint8_t handleEncoderAction(SystemState& state, uint8_t encoderEvent) {
     case ENCODER_EVENT_DRIVER_CW: return infoIncreaseVolume(state);
     case ENCODER_EVENT_DRIVER_CCW: return infoDecreaseVolume(state);
     case ENCODER_EVENT_DRIVER_SW: return infoToggleMute(state);
-    case ENCODER_EVENT_PASSENGER_CW: return infoTuneUp(state);
-    case ENCODER_EVENT_PASSENGER_CCW: return infoTuneDown(state);
+    case ENCODER_EVENT_PASSENGER_CW: return infoMediaIndexUp(state);
+    case ENCODER_EVENT_PASSENGER_CCW: return infoMediaIndexDown(state);
     case ENCODER_EVENT_PASSENGER_SW: return infoSelect(state);
     default: return 0;
   }

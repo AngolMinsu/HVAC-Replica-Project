@@ -8,14 +8,14 @@ struct ButtonLevels {
   uint8_t fanUp;
   uint8_t fanDown;
   uint8_t screen;
-  uint8_t windRadio;
+  uint8_t windMedia;
 };
 
 struct ButtonHistory {
   uint8_t prevFanUp;
   uint8_t prevFanDown;
   uint8_t prevScreen;
-  uint8_t prevWindRadio;
+  uint8_t prevWindMedia;
   unsigned long lastEventTime;
 };
 

@@ -8,7 +8,7 @@ void initButtonHistory(ButtonHistory& history) {
   history.prevFanUp = HIGH;
   history.prevFanDown = HIGH;
   history.prevScreen = HIGH;
-  history.prevWindRadio = HIGH;
+  history.prevWindMedia = HIGH;
   history.lastEventTime = 0;
 }
 
@@ -22,8 +22,8 @@ uint8_t detectButtonEvent(ButtonHistory& history, const ButtonLevels& levels, un
       button = APP_BUTTON_FAN_UP;
     } else if (isFallingEdge(history.prevFanDown, levels.fanDown)) {
       button = APP_BUTTON_FAN_DOWN;
-    } else if (isFallingEdge(history.prevWindRadio, levels.windRadio)) {
-      button = APP_BUTTON_WIND_RADIO;
+    } else if (isFallingEdge(history.prevWindMedia, levels.windMedia)) {
+      button = APP_BUTTON_WIND_MEDIA;
     }
 
     if (button != APP_BUTTON_NONE) {
@@ -34,7 +34,7 @@ uint8_t detectButtonEvent(ButtonHistory& history, const ButtonLevels& levels, un
   history.prevFanUp = levels.fanUp;
   history.prevFanDown = levels.fanDown;
   history.prevScreen = levels.screen;
-  history.prevWindRadio = levels.windRadio;
+  history.prevWindMedia = levels.windMedia;
 
   return button;
 }

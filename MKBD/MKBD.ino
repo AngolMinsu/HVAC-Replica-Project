@@ -33,7 +33,7 @@ U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);
 #define PSG_ENC_A        GDS_PIN_PASSENGER_ENC_A
 #define PSG_ENC_B        GDS_PIN_PASSENGER_ENC_B
 #define PSG_ENC_SW       GDS_PIN_PASSENGER_ENC_SW
-#define BTN_WIND_RADIO   GDS_PIN_BTN_WIND_RADIO
+#define BTN_WIND_MEDIA   GDS_PIN_BTN_WIND_MEDIA
 
 #define FAN_MOTOR   GDS_PIN_FAN_MOTOR
 #define CAN_CS      GDS_PIN_CAN_CS
@@ -80,7 +80,7 @@ void setup() {
   pinMode(PSG_ENC_A, INPUT_PULLUP);
   pinMode(PSG_ENC_B, INPUT_PULLUP);
   pinMode(PSG_ENC_SW, INPUT_PULLUP);
-  pinMode(BTN_WIND_RADIO, INPUT_PULLUP);
+  pinMode(BTN_WIND_MEDIA, INPUT_PULLUP);
 
   pinMode(FAN_MOTOR, OUTPUT);
 
@@ -143,7 +143,7 @@ ButtonLevels readButtonLevels() {
   levels.fanUp = digitalRead(BTN_FAN_UP);
   levels.fanDown = digitalRead(BTN_FAN_DOWN);
   levels.screen = digitalRead(BTN_SCREEN);
-  levels.windRadio = digitalRead(BTN_WIND_RADIO);
+  levels.windMedia = digitalRead(BTN_WIND_MEDIA);
 
   return levels;
 }
@@ -205,8 +205,8 @@ uint8_t printSystemStatus(const SystemState& s) {
   Serial.print(s.volume);
   Serial.print(" | MUTE:");
   Serial.print(s.mute ? "ON" : "OFF");
-  Serial.print(" | RADIO:");
-  Serial.println(s.radioMode ? "ON" : "OFF");
+  Serial.print(" | MEDIA:");
+  Serial.println(s.mediaMode ? "ON" : "OFF");
 
   return 1;
 }
@@ -299,8 +299,8 @@ uint8_t broadcastChangedHvacStatus(const SystemState& before, const SystemState&
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MAP);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MUTE);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_NAV);
-  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_RADIO_MODE);
-  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_RADIO_TUNE);
+  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MEDIA_MODE);
+  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MEDIA_INDEX);
 
   return sentCount;
 }

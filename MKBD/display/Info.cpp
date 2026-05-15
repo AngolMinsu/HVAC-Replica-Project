@@ -33,24 +33,24 @@ uint8_t infoClearMute(SystemState& state) {
   return 1;
 }
 
-uint8_t infoTuneUp(SystemState& state) {
-  if (!state.radioMode) return 0;
+uint8_t infoMediaIndexUp(SystemState& state) {
+  if (!state.mediaMode) return 0;
 
-  int oldTune = state.radioTune;
-  if (state.radioTune < GDS_RADIO_TUNE_MAX) state.radioTune++;
-  return state.radioTune != oldTune;
+  int oldIndex = state.mediaIndex;
+  if (state.mediaIndex < GDS_MEDIA_INDEX_MAX) state.mediaIndex++;
+  return state.mediaIndex != oldIndex;
 }
 
-uint8_t infoTuneDown(SystemState& state) {
-  if (!state.radioMode) return 0;
+uint8_t infoMediaIndexDown(SystemState& state) {
+  if (!state.mediaMode) return 0;
 
-  int oldTune = state.radioTune;
-  if (state.radioTune > GDS_RADIO_TUNE_MIN) state.radioTune--;
-  return state.radioTune != oldTune;
+  int oldIndex = state.mediaIndex;
+  if (state.mediaIndex > GDS_MEDIA_INDEX_MIN) state.mediaIndex--;
+  return state.mediaIndex != oldIndex;
 }
 
 uint8_t infoSelect(SystemState& state) {
-  if (!state.radioMode) return 0;
+  if (!state.mediaMode) return 0;
 
   state.mediaReady = !state.mediaReady;
   return 1;
@@ -68,8 +68,8 @@ uint8_t infoHandleNav(SystemState& state) {
   return 1;
 }
 
-uint8_t infoHandleRadio(SystemState& state) {
-  state.radioMode = !state.radioMode;
+uint8_t infoHandleMedia(SystemState& state) {
+  state.mediaMode = !state.mediaMode;
 
   return 1;
 }
@@ -91,12 +91,12 @@ void infoDrawScreen(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, const SystemSta
   }
 
   display.setCursor(0, 38);
-  display.print("RADIO:");
-  display.print(state.radioMode ? "ON" : "OFF");
+  display.print("MEDIA:");
+  display.print(state.mediaMode ? "ON" : "OFF");
 
   display.setCursor(70, 38);
-  display.print("TUNE:");
-  display.print(state.radioTune);
+  display.print("IDX:");
+  display.print(state.mediaIndex);
 
   display.setCursor(0, 52);
   display.print("MAP:");

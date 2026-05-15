@@ -21,8 +21,8 @@ static uint8_t isValidVolume(uint8_t value) {
   return value <= GDS_VOLUME_MAX;
 }
 
-static uint8_t isValidRadioTune(uint8_t value) {
-  return value <= GDS_RADIO_TUNE_MAX;
+static uint8_t isValidMediaIndex(uint8_t value) {
+  return value <= GDS_MEDIA_INDEX_MAX;
 }
 
 static uint8_t isPowerOn(const SystemState& state) {
@@ -96,12 +96,12 @@ uint8_t canSignalValueFromState(const SystemState& state, uint8_t signal, uint8_
       value = state.navReady ? 1 : 0;
       return 1;
 
-    case CAN_SIGNAL_RADIO_MODE:
-      value = state.radioMode ? 1 : 0;
+    case CAN_SIGNAL_MEDIA_MODE:
+      value = state.mediaMode ? 1 : 0;
       return 1;
 
-    case CAN_SIGNAL_RADIO_TUNE:
-      value = (uint8_t)state.radioTune;
+    case CAN_SIGNAL_MEDIA_INDEX:
+      value = (uint8_t)state.mediaIndex;
       return 1;
 
     case CAN_SIGNAL_DRIVER_ENCODER_SW:
@@ -211,14 +211,14 @@ uint8_t canApplyWriteRequest(SystemState& state, const CanPayload& request) {
       state.navReady = request.value == 1;
       return 1;
 
-    case CAN_SIGNAL_RADIO_MODE:
+    case CAN_SIGNAL_MEDIA_MODE:
       if (request.value > 1) return 0;
-      state.radioMode = request.value == 1;
+      state.mediaMode = request.value == 1;
       return 1;
 
-    case CAN_SIGNAL_RADIO_TUNE:
-      if (!isValidRadioTune(request.value)) return 0;
-      state.radioTune = request.value;
+    case CAN_SIGNAL_MEDIA_INDEX:
+      if (!isValidMediaIndex(request.value)) return 0;
+      state.mediaIndex = request.value;
       return 1;
 
     case CAN_SIGNAL_DRIVER_ENCODER_SW:
@@ -259,7 +259,7 @@ uint8_t canValidateWriteRequest(const CanPayload& request) {
     case CAN_SIGNAL_MAP:
     case CAN_SIGNAL_MUTE:
     case CAN_SIGNAL_NAV:
-    case CAN_SIGNAL_RADIO_MODE:
+    case CAN_SIGNAL_MEDIA_MODE:
     case CAN_SIGNAL_DRIVER_ENCODER_SW:
     case CAN_SIGNAL_PASSENGER_ENCODER_SW:
       return request.value <= 1 ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
@@ -267,8 +267,8 @@ uint8_t canValidateWriteRequest(const CanPayload& request) {
     case CAN_SIGNAL_VOLUME:
       return isValidVolume(request.value) ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
 
-    case CAN_SIGNAL_RADIO_TUNE:
-      return isValidRadioTune(request.value) ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
+    case CAN_SIGNAL_MEDIA_INDEX:
+      return isValidMediaIndex(request.value) ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
 
     default:
       return CAN_ERROR_UNSUPPORTED_SIGNAL;

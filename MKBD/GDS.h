@@ -15,7 +15,7 @@ const uint8_t GDS_PIN_CAN_CS = 10;
 const uint8_t GDS_PIN_PASSENGER_ENC_A = A0;
 const uint8_t GDS_PIN_PASSENGER_ENC_B = A1;
 const uint8_t GDS_PIN_PASSENGER_ENC_SW = A2;
-const uint8_t GDS_PIN_BTN_WIND_RADIO = A3;
+const uint8_t GDS_PIN_BTN_WIND_MEDIA = A3;
 
 // Timing
 const unsigned long GDS_DEBOUNCE_DELAY_MS = 60;
@@ -31,9 +31,9 @@ const uint8_t GDS_TEMP_MAX = 30;
 const uint8_t GDS_VOLUME_MIN = 0;
 const uint8_t GDS_VOLUME_DEFAULT = 10;
 const uint8_t GDS_VOLUME_MAX = 30;
-const uint8_t GDS_RADIO_TUNE_MIN = 0;
-const uint8_t GDS_RADIO_TUNE_DEFAULT = 10;
-const uint8_t GDS_RADIO_TUNE_MAX = 30;
+const uint8_t GDS_MEDIA_INDEX_MIN = 0;
+const uint8_t GDS_MEDIA_INDEX_DEFAULT = 10;
+const uint8_t GDS_MEDIA_INDEX_MAX = 30;
 
 // Fan PWM policy
 const int GDS_FAN_PWM_OFF = 0;
@@ -73,8 +73,8 @@ const uint8_t GDS_CAN_SIGNAL_MAP = 0x0B;
 const uint8_t GDS_CAN_SIGNAL_PASSENGER_TEMPERATURE = 0x0C;
 const uint8_t GDS_CAN_SIGNAL_MUTE = 0x0D;
 const uint8_t GDS_CAN_SIGNAL_NAV = 0x0E;
-const uint8_t GDS_CAN_SIGNAL_RADIO_MODE = 0x0F;
-const uint8_t GDS_CAN_SIGNAL_RADIO_TUNE = 0x10;
+const uint8_t GDS_CAN_SIGNAL_MEDIA_MODE = 0x0F;
+const uint8_t GDS_CAN_SIGNAL_MEDIA_INDEX = 0x10;
 const uint8_t GDS_CAN_SIGNAL_DRIVER_ENCODER_SW = 0x11;
 const uint8_t GDS_CAN_SIGNAL_PASSENGER_ENCODER_SW = 0x12;
 
