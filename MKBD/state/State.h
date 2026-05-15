@@ -17,7 +17,8 @@ enum WindMode {
   WIND_FACE = 0,
   WIND_FOOT,
   WIND_DEF,
-  WIND_MIX
+  WIND_MIX,
+  WIND_OFF
 };
 
 struct SystemState {
@@ -25,12 +26,17 @@ struct SystemState {
 
   HvacMode hvacMode;
   int fanSpeed;   // 0~8
-  int setTemp;    // 18~30
+  int driverTemp;     // 18~30
+  int passengerTemp;  // 18~30
   WindMode windMode;
 
   int volume;     // 0~30
+  bool mute;
   bool mediaReady;
   bool mapReady;
+  bool navReady;
+  bool radioMode;
+  int radioTune;
 };
 
 void initSystemState(SystemState& state);

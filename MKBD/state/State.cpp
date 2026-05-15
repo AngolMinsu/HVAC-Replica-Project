@@ -6,12 +6,17 @@ void initSystemState(SystemState& state) {
 
   state.hvacMode = HVAC_OFF;
   state.fanSpeed = GDS_FAN_SPEED_MIN;
-  state.setTemp = GDS_TEMP_DEFAULT;
+  state.driverTemp = GDS_TEMP_DEFAULT;
+  state.passengerTemp = GDS_TEMP_DEFAULT;
   state.windMode = WIND_FACE;
 
   state.volume = GDS_VOLUME_DEFAULT;
+  state.mute = false;
   state.mediaReady = false;
   state.mapReady = false;
+  state.navReady = false;
+  state.radioMode = false;
+  state.radioTune = GDS_RADIO_TUNE_DEFAULT;
 }
 
 void toggleScreenMode(SystemState& state) {
@@ -42,6 +47,7 @@ const char* windModeToText(WindMode mode) {
     case WIND_FOOT: return "FOOT";
     case WIND_DEF:  return "DEF";
     case WIND_MIX:  return "MIX";
+    case WIND_OFF:  return "OFF";
     default: return "UNKNOWN";
   }
 }
