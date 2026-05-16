@@ -34,6 +34,11 @@ static void markDirtyForSignal(SystemState& state, uint8_t signal);
 static uint8_t copyStateForRender(SystemState& out, uint32_t& dirtyFlags);
 
 void huRtosAppBegin() {
+  Serial.begin(GDS_SERIAL_BAUD);
+  delay(1000);
+  Serial.println();
+  Serial.println("=== HU32 BOOT 2026-05-16 LITTLEFS DEBUG ===");
+
   initSystemState(systemState);
 
   canRxQueue = xQueueCreate(12, sizeof(HuStateEvent));
@@ -126,8 +131,10 @@ static void inputTask(void* parameter) {
 static void assetTask(void* parameter) {
   (void)parameter;
 
+  Serial.println("ASSET task begin");
   AssetReadyEvent event;
   event.type = assetManager.begin() ? ASSET_EVENT_READY : ASSET_EVENT_FAIL;
+  Serial.println(event.type == ASSET_EVENT_READY ? "ASSET event:READY" : "ASSET event:FAIL");
   xQueueSend(assetEventQueue, &event, portMAX_DELAY);
 
   for (;;) {
