@@ -1,0 +1,6 @@
+{
+    "sketch":  "HU32.ino",
+    "port":  "COM10",
+    "board":  "esp32:esp32:esp32s3",
+    "configuration":  "JTAGAdapter=default,PSRAM=opi,FlashMode=dio,FlashSize=16M,LoopCore=1,EventsCore=1,USBMode=hwcdc,CDCOnBoot=cdc,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,PartitionScheme=huge_app,CPUFreq=240,UploadSpeed=921600,DebugLevel=none,EraseFlash=all"
+}
