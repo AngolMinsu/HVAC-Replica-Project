@@ -17,7 +17,7 @@ C:\Users\djvmf\Documents\Arduino\libraries\TFT_eSPI\User_Setup.h
 
 ## Asset upload
 
-Runtime assets are loaded from FFat/FATFS:
+Runtime assets are loaded from LittleFS:
 
 ```plain text
 /assets/topbar_base.png
@@ -32,7 +32,7 @@ The files are mirrored under:
 HU32/data/assets/
 ```
 
-Use the `16M Flash (3MB APP/9.9MB FATFS)` partition scheme and upload the FATFS data folder before running the sketch.
+Use the `Huge APP (3MB No OTA/1MB SPIFFS)` partition scheme and upload the LittleFS data folder before running the sketch.
 
 ## RTOS structure
 
@@ -40,7 +40,7 @@ Use the `16M Flash (3MB APP/9.9MB FATFS)` partition scheme and upload the FATFS 
 CAN RX Task      -> receives CAN frames and emits HuStateEvent
 CAN TX Task      -> waits for HuCanCommand and sends CAN requests
 Input Task       -> converts input into UiEvent
-Asset Task       -> mounts FFat/FATFS and prepares assets
+Asset Task       -> mounts LittleFS and prepares assets
 System Task      -> owns SystemState and dirty flags
 UI Task          -> owns all TFT drawing
 ```
