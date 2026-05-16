@@ -298,7 +298,7 @@ uint8_t broadcastChangedHvacStatus(const SystemState& before, const SystemState&
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_VOLUME);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MAP);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MUTE);
-  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_NAV);
+  sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_HOME);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MEDIA_MODE);
   sentCount += broadcastIfSignalChanged(before, after, CAN_SIGNAL_MEDIA_INDEX);
 

@@ -15,9 +15,9 @@ uint8_t Test_State(uint16_t loop) {
   ASSERT_EQUALS(5, state.windMode, WIND_FACE);
   ASSERT_EQUALS(6, state.volume, GDS_VOLUME_DEFAULT);
   ASSERT_EQUALS(7, state.mute, 0);
-  ASSERT_EQUALS(8, state.navReady, 0);
-  ASSERT_EQUALS(9, state.radioMode, 0);
-  ASSERT_EQUALS(10, state.radioTune, GDS_RADIO_TUNE_DEFAULT);
+  ASSERT_EQUALS(8, state.homeReady, 0);
+  ASSERT_EQUALS(9, state.mediaMode, 0);
+  ASSERT_EQUALS(10, state.mediaIndex, GDS_MEDIA_INDEX_DEFAULT);
 
   toggleScreenMode(state);
   ASSERT_EQUALS(11, state.screenMode, SCREEN_INFO);

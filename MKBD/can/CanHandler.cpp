@@ -92,8 +92,8 @@ uint8_t canSignalValueFromState(const SystemState& state, uint8_t signal, uint8_
       value = state.mute ? 1 : 0;
       return 1;
 
-    case CAN_SIGNAL_NAV:
-      value = state.navReady ? 1 : 0;
+    case CAN_SIGNAL_HOME:
+      value = state.homeReady ? 1 : 0;
       return 1;
 
     case CAN_SIGNAL_MEDIA_MODE:
@@ -206,9 +206,9 @@ uint8_t canApplyWriteRequest(SystemState& state, const CanPayload& request) {
       state.mute = request.value == 1;
       return 1;
 
-    case CAN_SIGNAL_NAV:
+    case CAN_SIGNAL_HOME:
       if (request.value > 1) return 0;
-      state.navReady = request.value == 1;
+      state.homeReady = request.value == 1;
       return 1;
 
     case CAN_SIGNAL_MEDIA_MODE:
@@ -258,7 +258,7 @@ uint8_t canValidateWriteRequest(const CanPayload& request) {
     case CAN_SIGNAL_MEDIA:
     case CAN_SIGNAL_MAP:
     case CAN_SIGNAL_MUTE:
-    case CAN_SIGNAL_NAV:
+    case CAN_SIGNAL_HOME:
     case CAN_SIGNAL_MEDIA_MODE:
     case CAN_SIGNAL_DRIVER_ENCODER_SW:
     case CAN_SIGNAL_PASSENGER_ENCODER_SW:

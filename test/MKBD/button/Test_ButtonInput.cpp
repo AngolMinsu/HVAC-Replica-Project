@@ -27,7 +27,7 @@ uint8_t Test_ButtonInput(uint16_t loop) {
 
   levels.screen = HIGH;
   ASSERT_EQUALS(9, detectButtonEvent(history, levels, 400, 60), APP_BUTTON_NONE);
-  levels.windRadio = LOW;
-  ASSERT_EQUALS(10, detectButtonEvent(history, levels, 470, 60), APP_BUTTON_WIND_RADIO);
+  levels.windMedia = LOW;
+  ASSERT_EQUALS(10, detectButtonEvent(history, levels, 470, 60), APP_BUTTON_WIND_MEDIA);
   return 1;
 }

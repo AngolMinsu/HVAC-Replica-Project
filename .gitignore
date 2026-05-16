@@ -1,0 +1,6 @@
+# Arduino / local build outputs
+**/build/
+
+# Local test binaries
+test/**/*.exe
+test/test_all.exe

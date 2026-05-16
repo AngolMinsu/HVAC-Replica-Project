@@ -7,10 +7,10 @@ uint8_t Test_Info(uint16_t loop) {
   SystemState state;
   state.mediaReady = false;
   state.mapReady = false;
-  state.navReady = false;
-  state.radioMode = false;
+  state.homeReady = false;
+  state.mediaMode = false;
   state.mute = false;
-  state.radioTune = GDS_RADIO_TUNE_DEFAULT;
+  state.mediaIndex = GDS_MEDIA_INDEX_DEFAULT;
   state.volume = GDS_VOLUME_MAX;
 
   ASSERT_EQUALS(0, infoIncreaseVolume(state), 0);
@@ -27,15 +27,15 @@ uint8_t Test_Info(uint16_t loop) {
 
   ASSERT_EQUALS(6, infoHandleMap(state), 1);
   ASSERT_EQUALS(7, state.mapReady, 1);
-  ASSERT_EQUALS(15, infoHandleNav(state), 1);
-  ASSERT_EQUALS(16, state.navReady, 1);
-  ASSERT_EQUALS(17, infoTuneUp(state), 0);
-  ASSERT_EQUALS(18, infoHandleRadio(state), 1);
-  ASSERT_EQUALS(19, state.radioMode, 1);
-  ASSERT_EQUALS(20, infoTuneUp(state), 1);
-  ASSERT_EQUALS(21, state.radioTune, GDS_RADIO_TUNE_DEFAULT + 1);
-  ASSERT_EQUALS(22, infoTuneDown(state), 1);
-  ASSERT_EQUALS(23, state.radioTune, GDS_RADIO_TUNE_DEFAULT);
+  ASSERT_EQUALS(15, infoHandleHome(state), 1);
+  ASSERT_EQUALS(16, state.homeReady, 1);
+  ASSERT_EQUALS(17, infoMediaIndexUp(state), 0);
+  ASSERT_EQUALS(18, infoHandleMedia(state), 1);
+  ASSERT_EQUALS(19, state.mediaMode, 1);
+  ASSERT_EQUALS(20, infoMediaIndexUp(state), 1);
+  ASSERT_EQUALS(21, state.mediaIndex, GDS_MEDIA_INDEX_DEFAULT + 1);
+  ASSERT_EQUALS(22, infoMediaIndexDown(state), 1);
+  ASSERT_EQUALS(23, state.mediaIndex, GDS_MEDIA_INDEX_DEFAULT);
   ASSERT_EQUALS(24, infoSelect(state), 1);
   ASSERT_EQUALS(25, state.mediaReady, 1);
 

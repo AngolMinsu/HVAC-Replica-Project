@@ -62,8 +62,8 @@ uint8_t infoHandleMap(SystemState& state) {
   return 1;
 }
 
-uint8_t infoHandleNav(SystemState& state) {
-  state.navReady = !state.navReady;
+uint8_t infoHandleHome(SystemState& state) {
+  state.homeReady = !state.homeReady;
 
   return 1;
 }
@@ -103,8 +103,8 @@ void infoDrawScreen(U8G2_SH1106_128X64_NONAME_F_HW_I2C& display, const SystemSta
   display.print(state.mapReady ? "ON" : "OFF");
 
   display.setCursor(70, 52);
-  display.print("NAV:");
-  display.print(state.navReady ? "ON" : "OFF");
+  display.print("HOME:");
+  display.print(state.homeReady ? "ON" : "OFF");
 
   display.setCursor(0, 64);
   display.print("MEDIA:");

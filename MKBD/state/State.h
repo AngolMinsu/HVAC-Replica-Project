@@ -34,7 +34,7 @@ struct SystemState {
   bool mute;
   bool mediaReady;
   bool mapReady;
-  bool navReady;
+  bool homeReady;
   bool mediaMode;
   int mediaIndex;
 };

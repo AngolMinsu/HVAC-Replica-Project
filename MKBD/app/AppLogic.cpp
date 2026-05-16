@@ -20,7 +20,7 @@ uint8_t handleButtonAction(SystemState& state, uint8_t button) {
 
   switch (button) {
     case APP_BUTTON_FAN_UP: return infoHandleMap(state);
-    case APP_BUTTON_FAN_DOWN: return infoHandleNav(state);
+    case APP_BUTTON_FAN_DOWN: return infoHandleHome(state);
     case APP_BUTTON_WIND_MEDIA: return infoHandleMedia(state);
     default: return 0;
   }

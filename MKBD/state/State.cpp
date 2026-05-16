@@ -14,7 +14,7 @@ void initSystemState(SystemState& state) {
   state.mute = false;
   state.mediaReady = false;
   state.mapReady = false;
-  state.navReady = false;
+  state.homeReady = false;
   state.mediaMode = false;
   state.mediaIndex = GDS_MEDIA_INDEX_DEFAULT;
 }

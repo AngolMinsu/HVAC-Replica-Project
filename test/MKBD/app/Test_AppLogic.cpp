@@ -14,9 +14,9 @@ static void initAppTestState(SystemState& state) {
   state.mute = false;
   state.mediaReady = false;
   state.mapReady = false;
-  state.navReady = false;
-  state.radioMode = false;
-  state.radioTune = GDS_RADIO_TUNE_DEFAULT;
+  state.homeReady = false;
+  state.mediaMode = false;
+  state.mediaIndex = GDS_MEDIA_INDEX_DEFAULT;
 }
 
 uint8_t Test_AppLogic(uint16_t loop) {
@@ -36,7 +36,7 @@ uint8_t Test_AppLogic(uint16_t loop) {
     ASSERT_EQUALS(7, state.fanSpeed, 4);
     ASSERT_EQUALS(8, handleButtonAction(state, APP_BUTTON_FAN_DOWN), 1);
     ASSERT_EQUALS(9, state.fanSpeed, 3);
-    ASSERT_EQUALS(10, handleButtonAction(state, APP_BUTTON_WIND_RADIO), 1);
+    ASSERT_EQUALS(10, handleButtonAction(state, APP_BUTTON_WIND_MEDIA), 1);
     ASSERT_EQUALS(11, state.windMode, WIND_FOOT);
     ASSERT_EQUALS(12, handleButtonAction(state, APP_BUTTON_SCREEN), 1);
     ASSERT_EQUALS(13, state.screenMode, SCREEN_INFO);
@@ -48,17 +48,17 @@ uint8_t Test_AppLogic(uint16_t loop) {
     ASSERT_EQUALS(18, handleEncoderAction(state, ENCODER_EVENT_DRIVER_SW), 1);
     ASSERT_EQUALS(19, state.mute, 1);
     ASSERT_EQUALS(20, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_CW), 0);
-    ASSERT_EQUALS(21, state.radioTune, GDS_RADIO_TUNE_DEFAULT);
-    ASSERT_EQUALS(22, handleButtonAction(state, APP_BUTTON_WIND_RADIO), 1);
-    ASSERT_EQUALS(23, state.radioMode, 1);
+    ASSERT_EQUALS(21, state.mediaIndex, GDS_MEDIA_INDEX_DEFAULT);
+    ASSERT_EQUALS(22, handleButtonAction(state, APP_BUTTON_WIND_MEDIA), 1);
+    ASSERT_EQUALS(23, state.mediaMode, 1);
     ASSERT_EQUALS(24, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_CW), 1);
-    ASSERT_EQUALS(25, state.radioTune, GDS_RADIO_TUNE_DEFAULT + 1);
+    ASSERT_EQUALS(25, state.mediaIndex, GDS_MEDIA_INDEX_DEFAULT + 1);
     ASSERT_EQUALS(26, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_SW), 1);
     ASSERT_EQUALS(27, state.mediaReady, 1);
     ASSERT_EQUALS(28, handleButtonAction(state, APP_BUTTON_FAN_UP), 1);
     ASSERT_EQUALS(29, state.mapReady, 1);
     ASSERT_EQUALS(30, handleButtonAction(state, APP_BUTTON_FAN_DOWN), 1);
-    ASSERT_EQUALS(31, state.navReady, 1);
+    ASSERT_EQUALS(31, state.homeReady, 1);
     ASSERT_EQUALS(32, handleButtonAction(state, APP_BUTTON_NONE), 0);
     ASSERT_EQUALS(33, handleEncoderAction(state, ENCODER_EVENT_NONE), 0);
   }
