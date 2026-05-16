@@ -22,7 +22,6 @@ static uint8_t huTxCounter = 0;
 static void canRxTask(void* parameter);
 static void canTxTask(void* parameter);
 static void inputTask(void* parameter);
-static void assetTask(void* parameter);
 static void uiTask(void* parameter);
 static void systemTask(void* parameter);
 
@@ -49,8 +48,13 @@ void huRtosAppBegin() {
 
   Serial.println("INIT order: TFT begin");
   uiManager.begin(&assetManager);
-  Serial.println("INIT order: TFT done, CAN begin");
+  Serial.println("INIT order: TFT done, ASSET begin");
 
+  systemState.assetsReady = assetManager.begin() ? 1 : 0;
+  Serial.println(systemState.assetsReady ? "ASSET:READY" : "ASSET:FAIL");
+  systemState.dirtyFlags |= DIRTY_FULL;
+
+  Serial.println("INIT order: ASSET done, CAN begin");
   uint8_t ready = canDriverBegin(GDS_PIN_CAN_CS);
   systemState.canReady = ready;
   Serial.print("CAN:");
@@ -60,7 +64,6 @@ void huRtosAppBegin() {
   xTaskCreatePinnedToCore(canRxTask, "CAN_RX", 4096, nullptr, 4, nullptr, 0);
   xTaskCreatePinnedToCore(canTxTask, "CAN_TX", 4096, nullptr, 3, nullptr, 0);
   xTaskCreatePinnedToCore(systemTask, "SYSTEM", 6144, nullptr, 3, nullptr, 0);
-  xTaskCreatePinnedToCore(assetTask, "ASSET", 6144, nullptr, 2, nullptr, 1);
   xTaskCreatePinnedToCore(inputTask, "INPUT", 4096, nullptr, 2, nullptr, 1);
   xTaskCreatePinnedToCore(uiTask, "UI", 8192, nullptr, 2, nullptr, 1);
 
@@ -128,20 +131,6 @@ static void inputTask(void* parameter) {
     }
 
     vTaskDelay(pdMS_TO_TICKS(10));
-  }
-}
-
-static void assetTask(void* parameter) {
-  (void)parameter;
-
-  Serial.println("ASSET task begin");
-  AssetReadyEvent event;
-  event.type = assetManager.begin() ? ASSET_EVENT_READY : ASSET_EVENT_FAIL;
-  Serial.println(event.type == ASSET_EVENT_READY ? "ASSET event:READY" : "ASSET event:FAIL");
-  xQueueSend(assetEventQueue, &event, portMAX_DELAY);
-
-  for (;;) {
-    vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
