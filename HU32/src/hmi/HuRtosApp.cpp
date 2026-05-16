@@ -37,7 +37,7 @@ void huRtosAppBegin() {
   Serial.begin(GDS_SERIAL_BAUD);
   delay(1000);
   Serial.println();
-  Serial.println("=== HU32 BOOT 2026-05-16 LITTLEFS DEBUG ===");
+  Serial.println("=== HU32 BOOT SPI_SPLIT_V2 ===");
 
   initSystemState(systemState);
 
@@ -47,12 +47,15 @@ void huRtosAppBegin() {
   assetEventQueue = xQueueCreate(2, sizeof(AssetReadyEvent));
   stateMutex = xSemaphoreCreateMutex();
 
+  Serial.println("INIT order: TFT begin");
+  uiManager.begin(&assetManager);
+  Serial.println("INIT order: TFT done, CAN begin");
+
   uint8_t ready = canDriverBegin(GDS_PIN_CAN_CS);
   systemState.canReady = ready;
   Serial.print("CAN:");
   Serial.println(ready ? "READY" : "FAIL");
-
-  uiManager.begin(&assetManager);
+  Serial.println("INIT order: CAN done");
 
   xTaskCreatePinnedToCore(canRxTask, "CAN_RX", 4096, nullptr, 4, nullptr, 0);
   xTaskCreatePinnedToCore(canTxTask, "CAN_TX", 4096, nullptr, 3, nullptr, 0);

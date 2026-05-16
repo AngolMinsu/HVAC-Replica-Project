@@ -2,13 +2,14 @@
 #include <SPI.h>
 #include <mcp_can.h>
 
-static MCP_CAN canController(GDS_PIN_CAN_CS);
+static SPIClass canSpi(HSPI);
+static MCP_CAN canController(&canSpi, GDS_PIN_CAN_CS);
 static uint8_t canReady = 0;
 
 uint8_t canDriverBegin(uint8_t csPin) {
   (void)csPin;
   canReady = 0;
-  SPI.begin(GDS_PIN_SPI_SCK, GDS_PIN_SPI_MISO, GDS_PIN_SPI_MOSI, GDS_PIN_CAN_CS);
+  canSpi.begin(GDS_PIN_SPI_SCK, GDS_PIN_SPI_MISO, GDS_PIN_SPI_MOSI, GDS_PIN_CAN_CS);
 
   if (canController.begin(MCP_ANY, CAN_500KBPS, MCP_16MHZ) != CAN_OK) {
     return 0;
