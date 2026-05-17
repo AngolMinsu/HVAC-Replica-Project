@@ -3,12 +3,11 @@
 
 #include <Arduino.h>
 
-// ESP32-S3 N16R8 + MCP2515 + ST7796S TFT
-const uint8_t GDS_PIN_CAN_CS = 15;
-const uint8_t GDS_PIN_CAN_INT = 21;
-const uint8_t GDS_PIN_SPI_SCK = 12;
-const uint8_t GDS_PIN_SPI_MISO = 13;
-const uint8_t GDS_PIN_SPI_MOSI = 11;
+// ESP32-S3 N16R8 + SN65HVD230 + ST7796S TFT
+const uint8_t GDS_PIN_CAN_TX = 11;
+const uint8_t GDS_PIN_CAN_RX = 13;
+const uint8_t GDS_PIN_CAN_CS = 255;
+const uint8_t GDS_PIN_CAN_INT = 255;
 
 const uint8_t GDS_PIN_TFT_CS = 10;
 const uint8_t GDS_PIN_TFT_DC = 9;
