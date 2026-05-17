@@ -53,6 +53,7 @@ void huRtosAppBegin() {
   systemState.assetsReady = assetManager.begin() ? 1 : 0;
   Serial.println(systemState.assetsReady ? "ASSET:READY" : "ASSET:FAIL");
   systemState.dirtyFlags |= DIRTY_FULL;
+  uiManager.render(systemState, DIRTY_FULL);
 
   Serial.println("INIT order: ASSET done, CAN begin");
   uint8_t ready = canDriverBegin(GDS_PIN_CAN_CS);

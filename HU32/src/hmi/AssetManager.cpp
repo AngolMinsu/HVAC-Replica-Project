@@ -10,6 +10,24 @@ static int16_t pngX = 0;
 static int16_t pngY = 0;
 static PNG pngDecoder;
 
+static void printAssetList() {
+  fs::File root = LittleFS.open("/assets");
+  if (!root || !root.isDirectory()) {
+    Serial.println("ASSET DIR:/assets missing");
+    return;
+  }
+
+  Serial.println("ASSET DIR:/assets");
+  fs::File file = root.openNextFile();
+  while (file) {
+    Serial.print("  ");
+    Serial.print(file.name());
+    Serial.print(" ");
+    Serial.println(file.size());
+    file = root.openNextFile();
+  }
+}
+
 static void* pngOpen(const char* filename, int32_t* size) {
   pngFile = LittleFS.open(filename, "r");
   if (!pngFile) {
@@ -58,16 +76,13 @@ static void pngDraw(PNGDRAW* draw) {
 bool AssetManager::begin() {
   ready = LittleFS.begin(false);
   if (!ready) {
-    Serial.println("LittleFS mount failed. Formatting LittleFS...");
-    if (LittleFS.format()) {
-      Serial.println("LittleFS format complete.");
-      ready = LittleFS.begin(false);
-    } else {
-      Serial.println("LittleFS format failed.");
-    }
+    Serial.println("LittleFS mount failed. Asset image was not formatted.");
   }
 
   Serial.println(ready ? "LittleFS:OK" : "LittleFS:NOK");
+  if (ready) {
+    printAssetList();
+  }
   return ready;
 }
 
@@ -77,6 +92,8 @@ bool AssetManager::isReady() const {
 
 bool AssetManager::drawPng(TFT_eSPI& tft, const char* path, int16_t x, int16_t y) {
   if (!ready || !LittleFS.exists(path)) {
+    Serial.print("ASSET missing:");
+    Serial.println(path);
     return false;
   }
 

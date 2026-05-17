@@ -29,17 +29,9 @@ void UIManager::begin(AssetManager* assetManager) {
   Serial.println(TFT_RST);
   tft.init();
   tft.setRotation(GDS_TFT_ROTATION);
-  tft.fillScreen(TFT_RED);
-  delay(120);
-  tft.fillScreen(TFT_GREEN);
-  delay(120);
-  tft.fillScreen(TFT_BLUE);
-  delay(120);
   tft.fillScreen(COLOR_BG);
   tft.setTextFont(2);
-  tft.setTextColor(COLOR_TEXT, COLOR_BG);
   tft.setTextDatum(TL_DATUM);
-  tft.drawString("HU32 TFT OK", 20, 20, 4);
   currentScreen = HU_SCREEN_HOME;
   initialized = true;
   Serial.println("TFT init done");
