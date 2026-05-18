@@ -10,7 +10,7 @@ uint8_t canDriverBegin(uint8_t csPin) {
   canController = MCP_CAN(csPin);
   canReady = 0;
 
-  if (canController.begin(MCP_ANY, CAN_500KBPS, MCP_16MHZ) != CAN_OK) {
+  if (canController.begin(MCP_ANY, CAN_500KBPS, MCP_8MHZ) != CAN_OK) {
     return 0;
   }
 
