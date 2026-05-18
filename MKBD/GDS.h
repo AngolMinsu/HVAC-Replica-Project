@@ -77,6 +77,8 @@ const uint8_t GDS_CAN_SIGNAL_MEDIA_MODE = 0x0F;
 const uint8_t GDS_CAN_SIGNAL_MEDIA_INDEX = 0x10;
 const uint8_t GDS_CAN_SIGNAL_DRIVER_ENCODER_SW = 0x11;
 const uint8_t GDS_CAN_SIGNAL_PASSENGER_ENCODER_SW = 0x12;
+const uint8_t GDS_CAN_SIGNAL_HU_FOCUS_PREV = 0x13;
+const uint8_t GDS_CAN_SIGNAL_HU_FOCUS_NEXT = 0x14;
 
 // CAN error values for payload Option byte on failure responses
 const uint8_t GDS_CAN_ERROR_NONE = 0x00;

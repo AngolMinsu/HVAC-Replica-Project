@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 // ESP32-S3 N16R8 + SN65HVD230 + ST7796S TFT
-const uint8_t GDS_CAN_ENABLED = 0;
+const uint8_t GDS_CAN_ENABLED = 1;
 const uint8_t GDS_PIN_CAN_TX = 17;
 const uint8_t GDS_PIN_CAN_RX = 18;
 const uint8_t GDS_PIN_CAN_CS = 255;
@@ -58,6 +58,8 @@ const uint8_t GDS_CAN_SIGNAL_MEDIA_MODE = 0x0F;
 const uint8_t GDS_CAN_SIGNAL_MEDIA_INDEX = 0x10;
 const uint8_t GDS_CAN_SIGNAL_DRIVER_ENCODER_SW = 0x11;
 const uint8_t GDS_CAN_SIGNAL_PASSENGER_ENCODER_SW = 0x12;
+const uint8_t GDS_CAN_SIGNAL_HU_FOCUS_PREV = 0x13;
+const uint8_t GDS_CAN_SIGNAL_HU_FOCUS_NEXT = 0x14;
 
 const uint8_t GDS_FAN_SPEED_MAX = 8;
 const uint8_t GDS_TEMP_MIN = 18;

@@ -29,17 +29,20 @@ static void displayFlush(lv_disp_drv_t* display, const lv_area_t* area, lv_color
   lv_disp_flush_ready(display);
 }
 
-static lv_obj_t* makePanel(lv_obj_t* parent, int16_t x, int16_t y, int16_t w, int16_t h, bool focused) {
+static lv_obj_t* makePanel(lv_obj_t* parent, int16_t x, int16_t y, int16_t w, int16_t h, bool focused, bool pressed = false) {
   lv_obj_t* panel = lv_obj_create(parent);
   lv_obj_set_pos(panel, x, y);
   lv_obj_set_size(panel, w, h);
   lv_obj_clear_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_style_radius(panel, 10, 0);
-  lv_obj_set_style_bg_color(panel, COLOR_PANEL, 0);
-  lv_obj_set_style_bg_opa(panel, LV_OPA_COVER, 0);
+  lv_obj_set_style_bg_color(panel, pressed ? lv_color_hex(0xEAF3FF) : COLOR_PANEL, 0);
+  lv_obj_set_style_bg_opa(panel, pressed ? LV_OPA_70 : LV_OPA_COVER, 0);
   lv_obj_set_style_border_width(panel, focused ? 2 : 1, 0);
-  lv_obj_set_style_border_color(panel, focused ? COLOR_FOCUS : lv_color_hex(0x23354D), 0);
+  lv_obj_set_style_border_color(panel, pressed ? lv_color_hex(0xFFFFFF) : (focused ? COLOR_FOCUS : lv_color_hex(0x23354D)), 0);
   lv_obj_set_style_pad_all(panel, 12, 0);
+  if (pressed) {
+    lv_obj_set_style_translate_y(panel, 1, 0);
+  }
   return panel;
 }
 
@@ -199,22 +202,35 @@ void UIManager::buildBottomBar(lv_obj_t* parent, const SystemState& state) {
 }
 
 void UIManager::buildHome(lv_obj_t* parent, const SystemState& state) {
-  lv_obj_t* media = makePanel(parent, 18, 60, 142, 180, state.focusedPanel == HU_PANEL_MEDIA);
-  makeLabel(media, "MEDIA", COLOR_TEXT, 0, 0);
-  makeLabel(media, state.media.title, COLOR_MUTED, 0, 92);
+  bool mediaFocused = state.focusedPanel == HU_PANEL_MEDIA;
+  bool mapFocused = state.focusedPanel == HU_PANEL_MAP;
+  bool settingFocused = state.focusedPanel == HU_PANEL_SETTING;
+  bool mediaPressed = mediaFocused && state.panelVisualState == HU_PANEL_PRESSED;
+  bool mapPressed = mapFocused && state.panelVisualState == HU_PANEL_PRESSED;
+  bool settingPressed = settingFocused && state.panelVisualState == HU_PANEL_PRESSED;
+  lv_color_t mediaText = mediaPressed ? COLOR_BG : COLOR_TEXT;
+  lv_color_t mediaSub = mediaPressed ? lv_color_hex(0x223048) : COLOR_MUTED;
+  lv_color_t mapText = mapPressed ? COLOR_BG : COLOR_TEXT;
+  lv_color_t mapSub = mapPressed ? lv_color_hex(0x223048) : COLOR_MUTED;
+  lv_color_t settingText = settingPressed ? COLOR_BG : COLOR_TEXT;
+  lv_color_t settingSub = settingPressed ? lv_color_hex(0x223048) : COLOR_MUTED;
+
+  lv_obj_t* media = makePanel(parent, 18, 60, 142, 180, mediaFocused, mediaPressed);
+  makeLabel(media, "MEDIA", mediaText, 0, 0);
+  makeLabel(media, state.media.title, mediaSub, 0, 92);
   char mediaLine[28];
   snprintf(mediaLine, sizeof(mediaLine), "Track %02u", state.mediaIndex);
-  makeLabel(media, mediaLine, COLOR_MUTED, 0, 120);
+  makeLabel(media, mediaLine, mediaSub, 0, 120);
 
-  lv_obj_t* map = makePanel(parent, 169, 60, 142, 180, state.focusedPanel == HU_PANEL_MAP);
-  makeLabel(map, "HOME", COLOR_TEXT, 0, 0);
-  makeLabel(map, state.mapReady ? "Route ready" : "Map standby", COLOR_MUTED, 0, 92);
-  makeLabel(map, "MKBD encoder", COLOR_MUTED, 0, 120);
+  lv_obj_t* map = makePanel(parent, 169, 60, 142, 180, mapFocused, mapPressed);
+  makeLabel(map, "MAP", mapText, 0, 0);
+  makeLabel(map, state.mapReady ? "Route ready" : "Map standby", mapSub, 0, 92);
+  makeLabel(map, "MKBD encoder", mapSub, 0, 120);
 
-  lv_obj_t* setting = makePanel(parent, 320, 60, 142, 180, state.focusedPanel == HU_PANEL_SETTING);
-  makeLabel(setting, "SETTING", COLOR_TEXT, 0, 0);
-  makeLabel(setting, "Vehicle status", COLOR_MUTED, 0, 92);
-  makeLabel(setting, "System info", COLOR_MUTED, 0, 120);
+  lv_obj_t* setting = makePanel(parent, 320, 60, 142, 180, settingFocused, settingPressed);
+  makeLabel(setting, "SETTING", settingText, 0, 0);
+  makeLabel(setting, "Vehicle status", settingSub, 0, 92);
+  makeLabel(setting, "System info", settingSub, 0, 120);
 }
 
 void UIManager::buildMedia(lv_obj_t* parent, const SystemState& state) {

@@ -27,6 +27,7 @@ static void systemTask(void* parameter);
 
 static void sendUiEvent(UiEventType type, uint8_t value);
 static void handleUiEvent(SystemState& state, const UiEvent& event);
+static void handleMkbdCanUiControl(SystemState& state, const CanPayload& payload);
 static void updateSystemStats(SystemState& state);
 static void updatePressedTransition(SystemState& state);
 static void markDirtyForSignal(SystemState& state, uint8_t signal);
@@ -162,6 +163,7 @@ static void systemTask(void* parameter) {
         systemState.lastCanRxMs = millis();
         systemState.canRxOk = 1;
         applyCanPayloadToState(systemState, canEvent.payload);
+        handleMkbdCanUiControl(systemState, canEvent.payload);
         markDirtyForSignal(systemState, canEvent.payload.signal);
       }
 
@@ -245,6 +247,33 @@ static void handleUiEvent(SystemState& state, const UiEvent& event) {
   }
 }
 
+static void handleMkbdCanUiControl(SystemState& state, const CanPayload& payload) {
+  if (!canValidateChecksum(payload) || payload.result == CAN_RESULT_FAIL) {
+    return;
+  }
+
+  if (state.screen != HU_SCREEN_HOME) {
+    return;
+  }
+
+  if (payload.signal == CAN_SIGNAL_HU_FOCUS_NEXT && payload.value == 1) {
+    UiEvent event = { UI_EVENT_FOCUS_NEXT, 0 };
+    handleUiEvent(state, event);
+    return;
+  }
+
+  if (payload.signal == CAN_SIGNAL_HU_FOCUS_PREV && payload.value == 1) {
+    UiEvent event = { UI_EVENT_FOCUS_PREV, 0 };
+    handleUiEvent(state, event);
+    return;
+  }
+
+  if (payload.signal == CAN_SIGNAL_PASSENGER_ENCODER_SW && payload.value == 1) {
+    UiEvent event = { UI_EVENT_SELECT, 0 };
+    handleUiEvent(state, event);
+  }
+}
+
 static void updatePressedTransition(SystemState& state) {
   if (state.panelVisualState != HU_PANEL_PRESSED || millis() < state.panelPressedUntilMs) {
     return;
@@ -301,6 +330,8 @@ static void markDirtyForSignal(SystemState& state, uint8_t signal) {
     case CAN_SIGNAL_MUTE:
     case CAN_SIGNAL_MEDIA_MODE:
     case CAN_SIGNAL_MEDIA_INDEX:
+    case CAN_SIGNAL_HU_FOCUS_PREV:
+    case CAN_SIGNAL_HU_FOCUS_NEXT:
       state.dirtyFlags |= DIRTY_MEDIA | DIRTY_HOME;
       break;
 

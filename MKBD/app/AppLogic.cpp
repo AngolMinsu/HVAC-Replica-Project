@@ -47,8 +47,8 @@ uint8_t handleEncoderAction(SystemState& state, uint8_t encoderEvent) {
     case ENCODER_EVENT_DRIVER_CW: return infoIncreaseVolume(state);
     case ENCODER_EVENT_DRIVER_CCW: return infoDecreaseVolume(state);
     case ENCODER_EVENT_DRIVER_SW: return infoToggleMute(state);
-    case ENCODER_EVENT_PASSENGER_CW: return infoMediaIndexUp(state);
-    case ENCODER_EVENT_PASSENGER_CCW: return infoMediaIndexDown(state);
+    case ENCODER_EVENT_PASSENGER_CW: return 0;
+    case ENCODER_EVENT_PASSENGER_CCW: return 0;
     case ENCODER_EVENT_PASSENGER_SW: return infoSelect(state);
     default: return 0;
   }

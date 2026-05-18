@@ -30,7 +30,7 @@ static uint8_t isPowerOn(const SystemState& state) {
 }
 
 static uint8_t isKnownSignal(uint8_t signal) {
-  return signal >= CAN_SIGNAL_POWER && signal <= CAN_SIGNAL_PASSENGER_ENCODER_SW;
+  return signal >= CAN_SIGNAL_POWER && signal <= CAN_SIGNAL_HU_FOCUS_NEXT;
 }
 
 static CanPayload canMakeFailResponse(const CanPayload& request, uint8_t service, uint8_t errorCode) {
@@ -106,6 +106,8 @@ uint8_t canSignalValueFromState(const SystemState& state, uint8_t signal, uint8_
 
     case CAN_SIGNAL_DRIVER_ENCODER_SW:
     case CAN_SIGNAL_PASSENGER_ENCODER_SW:
+    case CAN_SIGNAL_HU_FOCUS_PREV:
+    case CAN_SIGNAL_HU_FOCUS_NEXT:
       value = 1;
       return 1;
 
@@ -223,6 +225,8 @@ uint8_t canApplyWriteRequest(SystemState& state, const CanPayload& request) {
 
     case CAN_SIGNAL_DRIVER_ENCODER_SW:
     case CAN_SIGNAL_PASSENGER_ENCODER_SW:
+    case CAN_SIGNAL_HU_FOCUS_PREV:
+    case CAN_SIGNAL_HU_FOCUS_NEXT:
       return request.value <= 1;
 
     default:
@@ -262,6 +266,8 @@ uint8_t canValidateWriteRequest(const CanPayload& request) {
     case CAN_SIGNAL_MEDIA_MODE:
     case CAN_SIGNAL_DRIVER_ENCODER_SW:
     case CAN_SIGNAL_PASSENGER_ENCODER_SW:
+    case CAN_SIGNAL_HU_FOCUS_PREV:
+    case CAN_SIGNAL_HU_FOCUS_NEXT:
       return request.value <= 1 ? CAN_ERROR_NONE : CAN_ERROR_VALUE_OUT_OF_RANGE;
 
     case CAN_SIGNAL_VOLUME:
