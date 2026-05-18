@@ -79,6 +79,9 @@ const uint8_t GDS_CAN_SIGNAL_DRIVER_ENCODER_SW = 0x11;
 const uint8_t GDS_CAN_SIGNAL_PASSENGER_ENCODER_SW = 0x12;
 const uint8_t GDS_CAN_SIGNAL_HU_FOCUS_PREV = 0x13;
 const uint8_t GDS_CAN_SIGNAL_HU_FOCUS_NEXT = 0x14;
+const uint8_t GDS_CAN_SIGNAL_HU_OPEN_HOME = 0x15;
+const uint8_t GDS_CAN_SIGNAL_HU_OPEN_MAP = 0x16;
+const uint8_t GDS_CAN_SIGNAL_HU_OPEN_MEDIA = 0x17;
 
 // CAN error values for payload Option byte on failure responses
 const uint8_t GDS_CAN_ERROR_NONE = 0x00;
