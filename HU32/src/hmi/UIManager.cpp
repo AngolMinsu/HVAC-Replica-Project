@@ -77,18 +77,6 @@ static lv_obj_t* makeSettingTile(lv_obj_t* parent, int16_t x, int16_t y, const c
 
 void UIManager::begin(AssetManager* assetManager) {
   assets = assetManager;
-  Serial.println("TFT init start");
-  Serial.print("TFT driver ST7796, MOSI:");
-  Serial.print(TFT_MOSI);
-  Serial.print(" SCLK:");
-  Serial.print(TFT_SCLK);
-  Serial.print(" CS:");
-  Serial.print(TFT_CS);
-  Serial.print(" DC:");
-  Serial.print(TFT_DC);
-  Serial.print(" RST:");
-  Serial.println(TFT_RST);
-
   tft.init();
   tft.setRotation(GDS_TFT_ROTATION);
   tft.fillScreen(TFT_BLACK);
@@ -108,7 +96,6 @@ void UIManager::begin(AssetManager* assetManager) {
   currentScreen = HU_SCREEN_HOME;
   initialized = true;
   lastLvglTickMs = millis();
-  Serial.println("TFT init done");
 }
 
 void UIManager::loop() {

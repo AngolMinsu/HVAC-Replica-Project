@@ -39,7 +39,7 @@ void huRtosAppBegin() {
   Serial.begin(GDS_SERIAL_BAUD);
   delay(1000);
   Serial.println();
-  Serial.println("=== HU32 BOOT SPI_SPLIT_V2 ===");
+  Serial.println("HU32 Head Unit start");
 
   initSystemState(systemState);
 
@@ -49,21 +49,15 @@ void huRtosAppBegin() {
   assetEventQueue = xQueueCreate(2, sizeof(AssetReadyEvent));
   stateMutex = xSemaphoreCreateMutex();
 
-  Serial.println("INIT order: CAN begin before TFT");
   uint8_t ready = GDS_CAN_ENABLED ? canDriverBegin(GDS_PIN_CAN_CS) : 0;
   systemState.canReady = ready;
   Serial.print("CAN:");
   Serial.println(GDS_CAN_ENABLED ? (ready ? "READY" : "FAIL") : "SKIP");
-  Serial.println("INIT order: CAN done");
   Serial.flush();
 
-  Serial.println("INIT order: TFT begin");
   uiManager.begin(&assetManager);
-  Serial.println("INIT order: TFT done, ASSET begin");
 
   systemState.assetsReady = assetManager.begin() ? 1 : 0;
-  Serial.println(systemState.assetsReady ? "ASSET:READY" : "ASSET:FAIL");
-  Serial.println("INIT order: ASSET done");
   systemState.dirtyFlags |= DIRTY_FULL;
   Serial.flush();
 
@@ -73,8 +67,7 @@ void huRtosAppBegin() {
   xTaskCreatePinnedToCore(inputTask, "INPUT", 4096, nullptr, 2, nullptr, 1);
   xTaskCreatePinnedToCore(uiTask, "UI", 8192, nullptr, 2, nullptr, 1);
 
-  Serial.println("HU32 RTOS app started");
-  Serial.println("Input: n/p focus, s select, b back, h home, m media, c hvac");
+  Serial.println("HU32 ready");
 }
 
 static void canRxTask(void* parameter) {
