@@ -4,8 +4,9 @@
 #include <Arduino.h>
 
 // ESP32-S3 N16R8 + SN65HVD230 + ST7796S TFT
-const uint8_t GDS_PIN_CAN_TX = 11;
-const uint8_t GDS_PIN_CAN_RX = 13;
+const uint8_t GDS_CAN_ENABLED = 0;
+const uint8_t GDS_PIN_CAN_TX = 17;
+const uint8_t GDS_PIN_CAN_RX = 18;
 const uint8_t GDS_PIN_CAN_CS = 255;
 const uint8_t GDS_PIN_CAN_INT = 255;
 

@@ -1,18 +1,61 @@
 #include "UIManager.h"
 
-#include "screens/HomeScreen.h"
-#include "screens/HvacScreen.h"
-#include "screens/MapScreen.h"
-#include "screens/MediaScreen.h"
-#include "screens/SettingScreen.h"
+static TFT_eSPI* activeTft = nullptr;
+static lv_disp_draw_buf_t drawBuffer;
+static lv_color_t lvBuffer[GDS_TFT_WIDTH * 20];
 
-static const uint16_t COLOR_BG = 0x0008;
-static const uint16_t COLOR_PANEL = 0x0824;
-static const uint16_t COLOR_TEXT = TFT_WHITE;
-static const uint16_t COLOR_MUTED = 0x9CF3;
-static const uint16_t COLOR_ACCENT = 0x5D9F;
+static const lv_color_t COLOR_BG = lv_color_hex(0x07111F);
+static const lv_color_t COLOR_BAR = lv_color_hex(0x0B1726);
+static const lv_color_t COLOR_PANEL = lv_color_hex(0x122033);
+static const lv_color_t COLOR_FOCUS = lv_color_hex(0x4AA3FF);
+static const lv_color_t COLOR_TEXT = lv_color_hex(0xF4F7FB);
+static const lv_color_t COLOR_MUTED = lv_color_hex(0x8FA6C1);
 static const uint16_t TOP_H = 40;
 static const uint16_t BOTTOM_H = 40;
+
+static void displayFlush(lv_disp_drv_t* display, const lv_area_t* area, lv_color_t* colors) {
+  (void)display;
+  if (!activeTft) {
+    lv_disp_flush_ready(display);
+    return;
+  }
+
+  uint32_t width = area->x2 - area->x1 + 1;
+  uint32_t height = area->y2 - area->y1 + 1;
+  activeTft->startWrite();
+  activeTft->setAddrWindow(area->x1, area->y1, width, height);
+  activeTft->pushColors((uint16_t*)&colors->full, width * height, true);
+  activeTft->endWrite();
+  lv_disp_flush_ready(display);
+}
+
+static lv_obj_t* makePanel(lv_obj_t* parent, int16_t x, int16_t y, int16_t w, int16_t h, bool focused) {
+  lv_obj_t* panel = lv_obj_create(parent);
+  lv_obj_set_pos(panel, x, y);
+  lv_obj_set_size(panel, w, h);
+  lv_obj_clear_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_radius(panel, 10, 0);
+  lv_obj_set_style_bg_color(panel, COLOR_PANEL, 0);
+  lv_obj_set_style_bg_opa(panel, LV_OPA_COVER, 0);
+  lv_obj_set_style_border_width(panel, focused ? 2 : 1, 0);
+  lv_obj_set_style_border_color(panel, focused ? COLOR_FOCUS : lv_color_hex(0x23354D), 0);
+  lv_obj_set_style_pad_all(panel, 12, 0);
+  return panel;
+}
+
+static lv_obj_t* makeLabel(lv_obj_t* parent, const char* text, lv_color_t color, int16_t x, int16_t y) {
+  lv_obj_t* label = lv_label_create(parent);
+  lv_label_set_text(label, text);
+  lv_obj_set_style_text_color(label, color, 0);
+  lv_obj_set_pos(label, x, y);
+  return label;
+}
+
+static void makeValueRow(lv_obj_t* parent, const char* name, const char* value, int16_t y) {
+  makeLabel(parent, name, COLOR_MUTED, 0, y);
+  lv_obj_t* valueLabel = makeLabel(parent, value, COLOR_TEXT, 92, y);
+  lv_obj_set_style_text_align(valueLabel, LV_TEXT_ALIGN_RIGHT, 0);
+}
 
 void UIManager::begin(AssetManager* assetManager) {
   assets = assetManager;
@@ -27,14 +70,38 @@ void UIManager::begin(AssetManager* assetManager) {
   Serial.print(TFT_DC);
   Serial.print(" RST:");
   Serial.println(TFT_RST);
+
   tft.init();
   tft.setRotation(GDS_TFT_ROTATION);
-  tft.fillScreen(COLOR_BG);
-  tft.setTextFont(2);
-  tft.setTextDatum(TL_DATUM);
+  tft.fillScreen(TFT_BLACK);
+  activeTft = &tft;
+
+  lv_init();
+  lv_disp_draw_buf_init(&drawBuffer, lvBuffer, nullptr, GDS_TFT_WIDTH * 20);
+
+  static lv_disp_drv_t displayDriver;
+  lv_disp_drv_init(&displayDriver);
+  displayDriver.hor_res = GDS_TFT_WIDTH;
+  displayDriver.ver_res = GDS_TFT_HEIGHT;
+  displayDriver.flush_cb = displayFlush;
+  displayDriver.draw_buf = &drawBuffer;
+  lv_disp_drv_register(&displayDriver);
+
   currentScreen = HU_SCREEN_HOME;
   initialized = true;
+  lastLvglTickMs = millis();
   Serial.println("TFT init done");
+}
+
+void UIManager::loop() {
+  if (!initialized) {
+    return;
+  }
+
+  uint32_t now = millis();
+  lv_tick_inc(now - lastLvglTickMs);
+  lastLvglTickMs = now;
+  lv_timer_handler();
 }
 
 void UIManager::render(const SystemState& state, uint32_t dirtyFlags) {
@@ -42,128 +109,156 @@ void UIManager::render(const SystemState& state, uint32_t dirtyFlags) {
     return;
   }
 
-  if (dirtyFlags == DIRTY_FULL || currentScreen != state.screen) {
-    tft.fillScreen(COLOR_BG);
-    dirtyFlags = DIRTY_FULL;
-    currentScreen = state.screen;
-  }
-
-  if (dirtyFlags & (DIRTY_FULL | DIRTY_TOP_BAR | DIRTY_STATUS)) {
-    drawTopBar(state);
-  }
-
-  drawScreen(state, dirtyFlags);
-
-  if (dirtyFlags & (DIRTY_FULL | DIRTY_BOTTOM_BAR | DIRTY_STATUS)) {
-    drawBottomBar(state);
-  }
+  buildLayout(state);
+  currentScreen = state.screen;
 }
 
 void UIManager::renderPressedOverlay(const SystemState& state) {
-  if (state.screen == HU_SCREEN_HOME) {
-    drawHome(state, DIRTY_FOCUS);
+  if (!initialized) {
+    return;
   }
+
+  buildLayout(state);
 }
 
-void UIManager::drawTopBar(const SystemState& state) {
-  if (!drawAsset("/assets/topbar_base.png", 0, 0, 480, TOP_H, "", COLOR_PANEL)) {
-    tft.fillRect(0, 0, 480, TOP_H, 0x020A);
+void UIManager::buildLayout(const SystemState& state) {
+  lv_obj_t* screen = lv_scr_act();
+  lv_obj_clean(screen);
+  lv_obj_clear_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_bg_color(screen, COLOR_BG, 0);
+  lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, 0);
+
+  buildTopBar(screen, state);
+
+  switch (state.screen) {
+    case HU_SCREEN_HOME: buildHome(screen, state); break;
+    case HU_SCREEN_MEDIA: buildMedia(screen, state); break;
+    case HU_SCREEN_HVAC: buildHvac(screen, state); break;
+    case HU_SCREEN_MAP: buildMap(screen, state); break;
+    case HU_SCREEN_SETTING: buildSetting(screen, state); break;
   }
 
-  drawTextOverBars(state);
+  buildBottomBar(screen, state);
 }
 
-void UIManager::drawBottomBar(const SystemState& state) {
-  if (!drawAsset("/assets/bottombar_base.png", 0, 280, 480, BOTTOM_H, "", COLOR_PANEL)) {
-    tft.fillRect(0, 280, 480, BOTTOM_H, 0x020A);
-  }
+void UIManager::buildTopBar(lv_obj_t* parent, const SystemState& state) {
+  lv_obj_t* bar = lv_obj_create(parent);
+  lv_obj_set_pos(bar, 0, 0);
+  lv_obj_set_size(bar, 480, TOP_H);
+  lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_radius(bar, 0, 0);
+  lv_obj_set_style_bg_color(bar, COLOR_BAR, 0);
+  lv_obj_set_style_border_width(bar, 0, 0);
+  lv_obj_set_style_pad_all(bar, 0, 0);
 
-  drawAsset("/assets/back_normal.png", 10, 286, 28, 28, "<", COLOR_ACCENT);
-  drawAsset("/assets/home_normal.png", 52, 286, 28, 28, "H", COLOR_ACCENT);
-  drawAsset("/assets/hamburger_normal.png", 94, 286, 28, 28, "M", COLOR_ACCENT);
+  makeLabel(bar, huScreenToText(state.screen), COLOR_TEXT, 16, 11);
 
-  tft.setTextColor(COLOR_TEXT, 0x020A);
-  tft.setTextDatum(MC_DATUM);
-  char info[48];
+  uint32_t sec = millis() / 1000;
+  char date[36];
+  snprintf(date, sizeof(date), "2026.05.18");
+  lv_obj_t* center = makeLabel(bar, date, COLOR_MUTED, 170, 11);
+  lv_obj_set_width(center, 140);
+  lv_obj_set_style_text_align(center, LV_TEXT_ALIGN_CENTER, 0);
+
+  char timeText[16];
+  snprintf(timeText, sizeof(timeText), "%02lu:%02lu", (sec / 3600) % 24, (sec / 60) % 60);
+  lv_obj_t* right = makeLabel(bar, timeText, COLOR_TEXT, 360, 11);
+  lv_obj_set_width(right, 104);
+  lv_obj_set_style_text_align(right, LV_TEXT_ALIGN_RIGHT, 0);
+}
+
+void UIManager::buildBottomBar(lv_obj_t* parent, const SystemState& state) {
+  lv_obj_t* bar = lv_obj_create(parent);
+  lv_obj_set_pos(bar, 0, 280);
+  lv_obj_set_size(bar, 480, BOTTOM_H);
+  lv_obj_clear_flag(bar, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_radius(bar, 0, 0);
+  lv_obj_set_style_bg_color(bar, COLOR_BAR, 0);
+  lv_obj_set_style_border_width(bar, 0, 0);
+  lv_obj_set_style_pad_all(bar, 0, 0);
+
+  makeLabel(bar, "<", COLOR_TEXT, 18, 11);
+  makeLabel(bar, "HOME", COLOR_TEXT, 54, 11);
+  makeLabel(bar, "MENU", COLOR_TEXT, 112, 11);
+
+  char info[64];
   if (state.screen == HU_SCREEN_MAP) {
     snprintf(info, sizeof(info), "Route 12.4km  ETA 18:42");
   } else {
     snprintf(info, sizeof(info), "DRV %u  PSG %u  FAN %u  %s", state.driverTemp, state.passengerTemp, state.fanSpeed, huWindToText(state.windMode));
   }
-  tft.drawString(info, 250, 300, 2);
+  lv_obj_t* center = makeLabel(bar, info, COLOR_MUTED, 180, 11);
+  lv_obj_set_width(center, 180);
+  lv_obj_set_style_text_align(center, LV_TEXT_ALIGN_CENTER, 0);
 
-  char media[36];
+  char media[28];
   snprintf(media, sizeof(media), "%s %02u", state.mute ? "MUTE" : "VOL", state.mute ? 0 : state.volume);
-  tft.setTextDatum(MR_DATUM);
-  tft.drawString(media, 470, 300, 2);
-  tft.setTextDatum(TL_DATUM);
+  lv_obj_t* right = makeLabel(bar, media, COLOR_TEXT, 395, 11);
+  lv_obj_set_width(right, 70);
+  lv_obj_set_style_text_align(right, LV_TEXT_ALIGN_RIGHT, 0);
 }
 
-void UIManager::drawScreen(const SystemState& state, uint32_t dirtyFlags) {
-  switch (state.screen) {
-    case HU_SCREEN_HOME: drawHome(state, dirtyFlags); break;
-    case HU_SCREEN_MEDIA: drawMedia(state); break;
-    case HU_SCREEN_HVAC: drawHvac(state); break;
-    case HU_SCREEN_MAP: drawMap(state); break;
-    case HU_SCREEN_SETTING: drawSetting(state); break;
-  }
+void UIManager::buildHome(lv_obj_t* parent, const SystemState& state) {
+  lv_obj_t* media = makePanel(parent, 18, 60, 142, 180, state.focusedPanel == HU_PANEL_MEDIA);
+  makeLabel(media, "MEDIA", COLOR_TEXT, 0, 0);
+  makeLabel(media, state.media.title, COLOR_MUTED, 0, 92);
+  char mediaLine[28];
+  snprintf(mediaLine, sizeof(mediaLine), "Track %02u", state.mediaIndex);
+  makeLabel(media, mediaLine, COLOR_MUTED, 0, 120);
+
+  lv_obj_t* map = makePanel(parent, 169, 60, 142, 180, state.focusedPanel == HU_PANEL_MAP);
+  makeLabel(map, "HOME", COLOR_TEXT, 0, 0);
+  makeLabel(map, state.mapReady ? "Route ready" : "Map standby", COLOR_MUTED, 0, 92);
+  makeLabel(map, "MKBD encoder", COLOR_MUTED, 0, 120);
+
+  lv_obj_t* setting = makePanel(parent, 320, 60, 142, 180, state.focusedPanel == HU_PANEL_SETTING);
+  makeLabel(setting, "SETTING", COLOR_TEXT, 0, 0);
+  makeLabel(setting, "Vehicle status", COLOR_MUTED, 0, 92);
+  makeLabel(setting, "System info", COLOR_MUTED, 0, 120);
 }
 
-void UIManager::drawHome(const SystemState& state, uint32_t dirtyFlags) {
-  if (dirtyFlags & (DIRTY_FULL | DIRTY_HOME)) {
-    tft.fillRect(0, TOP_H, 480, 240, COLOR_BG);
-  }
-  drawHomeScreen(tft, *assets, state);
+void UIManager::buildMedia(lv_obj_t* parent, const SystemState& state) {
+  lv_obj_t* panel = makePanel(parent, 24, 58, 432, 190, true);
+  makeLabel(panel, "MEDIA", COLOR_TEXT, 0, 0);
+  makeLabel(panel, state.media.title, COLOR_TEXT, 0, 52);
+  makeLabel(panel, state.media.artist, COLOR_MUTED, 0, 82);
+
+  char line[40];
+  snprintf(line, sizeof(line), "Index %02u / Volume %02u", state.mediaIndex, state.volume);
+  makeLabel(panel, line, COLOR_MUTED, 0, 122);
 }
 
-void UIManager::drawMedia(const SystemState& state) {
-  tft.fillRect(0, TOP_H, 480, 240, COLOR_BG);
-  drawMediaScreen(tft, *assets, state);
+void UIManager::buildHvac(lv_obj_t* parent, const SystemState& state) {
+  lv_obj_t* panel = makePanel(parent, 24, 58, 432, 190, true);
+  makeLabel(panel, "HVAC", COLOR_TEXT, 0, 0);
+
+  char value[20];
+  snprintf(value, sizeof(value), "%u", state.fanSpeed);
+  makeValueRow(panel, "FAN", value, 44);
+  snprintf(value, sizeof(value), "%u", state.driverTemp);
+  makeValueRow(panel, "DRV", value, 76);
+  snprintf(value, sizeof(value), "%u", state.passengerTemp);
+  makeValueRow(panel, "PSG", value, 108);
+  makeValueRow(panel, "AIR", huWindToText(state.windMode), 140);
 }
 
-void UIManager::drawHvac(const SystemState& state) {
-  tft.fillRect(0, TOP_H, 480, 240, COLOR_BG);
-  drawHvacScreen(tft, state);
+void UIManager::buildMap(lv_obj_t* parent, const SystemState& state) {
+  lv_obj_t* panel = makePanel(parent, 24, 58, 432, 190, true);
+  makeLabel(panel, "HOME / MAP", COLOR_TEXT, 0, 0);
+  makeLabel(panel, state.mapReady ? "Map data ready" : "Waiting for map signal", COLOR_MUTED, 0, 52);
+  makeLabel(panel, "480x320 non-touch HU display", COLOR_MUTED, 0, 92);
 }
 
-void UIManager::drawMap(const SystemState& state) {
-  tft.fillRect(0, TOP_H, 480, 240, COLOR_BG);
-  drawMapScreen(tft, *assets, state);
-}
+void UIManager::buildSetting(lv_obj_t* parent, const SystemState& state) {
+  lv_obj_t* panel = makePanel(parent, 24, 58, 432, 190, true);
+  makeLabel(panel, "SYSTEM", COLOR_TEXT, 0, 0);
 
-void UIManager::drawSetting(const SystemState& state) {
-  tft.fillRect(0, TOP_H, 480, 240, COLOR_BG);
-  drawSettingScreen(tft, state);
-}
-
-void UIManager::drawTextOverBars(const SystemState& state) {
-  tft.setTextColor(COLOR_TEXT, 0x020A);
-  tft.setTextDatum(ML_DATUM);
-  tft.drawString(huScreenToText(state.screen), 16, 20, 2);
-
-  uint32_t sec = millis() / 1000;
-  uint16_t day = (sec / 86400) % 7;
-  const char* days[] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-  char date[32];
-  snprintf(date, sizeof(date), "%s 2026.05.16", days[day]);
-  tft.setTextDatum(MC_DATUM);
-  tft.drawString(date, 240, 20, 2);
-
-  char time[16];
-  snprintf(time, sizeof(time), "%02lu:%02lu", (sec / 3600) % 24, (sec / 60) % 60);
-  tft.setTextDatum(MR_DATUM);
-  tft.drawString(time, 464, 20, 2);
-
-  tft.setTextDatum(TL_DATUM);
-}
-
-bool UIManager::drawAsset(const char* path, int16_t x, int16_t y, int16_t w, int16_t h, const char* fallback, uint16_t borderColor) {
-  if (assets && assets->drawPng(tft, path, x, y)) {
-    return true;
-  }
-
-  if (fallback && fallback[0] != '\0') {
-    assets->drawFallbackPanel(tft, x, y, w, h, fallback, borderColor);
-  }
-  return false;
+  char line[40];
+  snprintf(line, sizeof(line), "%lu", (unsigned long)state.freeHeap);
+  makeValueRow(panel, "Heap", line, 44);
+  snprintf(line, sizeof(line), "%lu", (unsigned long)state.fps);
+  makeValueRow(panel, "FPS", line, 76);
+  snprintf(line, sizeof(line), "0x%03X", state.lastCanId);
+  makeValueRow(panel, "Last CAN", line, 108);
+  makeValueRow(panel, "Input", "MKBD INFO PSG", 140);
 }

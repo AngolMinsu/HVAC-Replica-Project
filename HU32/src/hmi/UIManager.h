@@ -3,12 +3,14 @@
 
 #include <Arduino.h>
 #include <TFT_eSPI.h>
+#include <lvgl.h>
 #include "AssetManager.h"
 #include "HuTypes.h"
 
 class UIManager {
 public:
   void begin(AssetManager* assetManager);
+  void loop();
   void render(const SystemState& state, uint32_t dirtyFlags);
   void renderPressedOverlay(const SystemState& state);
 
@@ -17,17 +19,16 @@ private:
   AssetManager* assets;
   HuScreen currentScreen;
   bool initialized;
+  uint32_t lastLvglTickMs;
 
-  void drawTopBar(const SystemState& state);
-  void drawBottomBar(const SystemState& state);
-  void drawScreen(const SystemState& state, uint32_t dirtyFlags);
-  void drawHome(const SystemState& state, uint32_t dirtyFlags);
-  void drawMedia(const SystemState& state);
-  void drawHvac(const SystemState& state);
-  void drawMap(const SystemState& state);
-  void drawSetting(const SystemState& state);
-  void drawTextOverBars(const SystemState& state);
-  bool drawAsset(const char* path, int16_t x, int16_t y, int16_t w, int16_t h, const char* fallback, uint16_t borderColor);
+  void buildLayout(const SystemState& state);
+  void buildTopBar(lv_obj_t* parent, const SystemState& state);
+  void buildBottomBar(lv_obj_t* parent, const SystemState& state);
+  void buildHome(lv_obj_t* parent, const SystemState& state);
+  void buildMedia(lv_obj_t* parent, const SystemState& state);
+  void buildHvac(lv_obj_t* parent, const SystemState& state);
+  void buildMap(lv_obj_t* parent, const SystemState& state);
+  void buildSetting(lv_obj_t* parent, const SystemState& state);
 };
 
 #endif

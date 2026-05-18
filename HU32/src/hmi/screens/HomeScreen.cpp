@@ -34,7 +34,9 @@ static void drawPanel(TFT_eSPI& tft, AssetManager& assets, HuPanelFocus panel, c
   const uint16_t w = 142;
   const uint16_t h = 180;
 
-  if (!assets.drawPng(tft, panelAsset(panel, state.focusedPanel, state.panelVisualState), x + offset, y + offset)) {
+  if (assets.drawPng(tft, panelAsset(panel, state.focusedPanel, state.panelVisualState), x + offset, y + offset)) {
+    return;
+  } else {
     assets.drawFallbackPanel(tft, x + offset, y + offset, w, h, title, panel == state.focusedPanel ? COLOR_GLOW : 0x294A);
   }
 
@@ -70,4 +72,3 @@ void drawHomeScreen(TFT_eSPI& tft, AssetManager& assets, const SystemState& stat
   drawPanel(tft, assets, HU_PANEL_MAP, state, 169, 60, "MAP", mapLine, "Route preview");
   drawPanel(tft, assets, HU_PANEL_SETTING, state, 320, 60, "SETTING", hvacLine, "Vehicle status");
 }
-

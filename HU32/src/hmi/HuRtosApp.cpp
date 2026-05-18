@@ -53,13 +53,12 @@ void huRtosAppBegin() {
   systemState.assetsReady = assetManager.begin() ? 1 : 0;
   Serial.println(systemState.assetsReady ? "ASSET:READY" : "ASSET:FAIL");
   systemState.dirtyFlags |= DIRTY_FULL;
-  uiManager.render(systemState, DIRTY_FULL);
 
   Serial.println("INIT order: ASSET done, CAN begin");
-  uint8_t ready = canDriverBegin(GDS_PIN_CAN_CS);
+  uint8_t ready = GDS_CAN_ENABLED ? canDriverBegin(GDS_PIN_CAN_CS) : 0;
   systemState.canReady = ready;
   Serial.print("CAN:");
-  Serial.println(ready ? "READY" : "FAIL");
+  Serial.println(GDS_CAN_ENABLED ? (ready ? "READY" : "FAIL") : "SKIP");
   Serial.println("INIT order: CAN done");
 
   xTaskCreatePinnedToCore(canRxTask, "CAN_RX", 4096, nullptr, 4, nullptr, 0);
@@ -146,6 +145,7 @@ static void uiTask(void* parameter) {
       uiManager.render(snapshot, dirtyFlags);
     }
 
+    uiManager.loop();
     vTaskDelayUntil(&lastWake, pdMS_TO_TICKS(GDS_UI_FRAME_MS));
   }
 }
