@@ -66,7 +66,8 @@ uint8_t setupCan();
 uint8_t processCanReceive();
 uint8_t sendCanPayload(uint16_t id, const CanPayload& payload);
 uint8_t broadcastHvacStatus(uint8_t signal);
-uint8_t broadcastEncoderSwitchEvent(uint8_t encoderEvent, const SystemState& currentState);
+uint8_t broadcastButtonMenuEvent(uint8_t button, const SystemState& inputState);
+uint8_t broadcastEncoderSwitchEvent(uint8_t encoderEvent, const SystemState& inputState);
 uint8_t broadcastChangedHvacStatus(const SystemState& before, const SystemState& after);
 uint8_t broadcastIfSignalChanged(const SystemState& before, const SystemState& after, uint8_t signal);
 
@@ -112,6 +113,7 @@ void loop() {
       printSystemStatus(state);
       broadcastChangedHvacStatus(before, state);
     }
+    broadcastButtonMenuEvent(button, before);
   }
 
   uint8_t encoderEvent = readEncoderEvent();
@@ -122,7 +124,7 @@ void loop() {
       printSystemStatus(state);
       broadcastChangedHvacStatus(before, state);
     }
-    broadcastEncoderSwitchEvent(encoderEvent, state);
+    broadcastEncoderSwitchEvent(encoderEvent, before);
   }
 
   if (processCanReceive()) {
@@ -271,8 +273,28 @@ uint8_t broadcastHvacStatus(uint8_t signal) {
   return sendCanPayload(CAN_ID_HVAC_STATUS, payload);
 }
 
-uint8_t broadcastEncoderSwitchEvent(uint8_t encoderEvent, const SystemState& currentState) {
-  if (currentState.screenMode == SCREEN_INFO) {
+uint8_t broadcastButtonMenuEvent(uint8_t button, const SystemState& inputState) {
+  if (inputState.screenMode != SCREEN_INFO) {
+    return 0;
+  }
+
+  if (button == APP_BUTTON_FAN_UP) {
+    return broadcastHvacStatus(CAN_SIGNAL_HU_OPEN_MAP);
+  }
+
+  if (button == APP_BUTTON_FAN_DOWN) {
+    return broadcastHvacStatus(CAN_SIGNAL_HU_OPEN_HOME);
+  }
+
+  if (button == APP_BUTTON_WIND_MEDIA) {
+    return broadcastHvacStatus(CAN_SIGNAL_HU_OPEN_MEDIA);
+  }
+
+  return 0;
+}
+
+uint8_t broadcastEncoderSwitchEvent(uint8_t encoderEvent, const SystemState& inputState) {
+  if (inputState.screenMode == SCREEN_INFO) {
     if (encoderEvent == ENCODER_EVENT_PASSENGER_CW) {
       return broadcastHvacStatus(CAN_SIGNAL_HU_FOCUS_NEXT);
     }

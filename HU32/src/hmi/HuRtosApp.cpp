@@ -47,22 +47,25 @@ void huRtosAppBegin() {
   assetEventQueue = xQueueCreate(2, sizeof(AssetReadyEvent));
   stateMutex = xSemaphoreCreateMutex();
 
+  Serial.println("INIT order: CAN begin before TFT");
+  uint8_t ready = GDS_CAN_ENABLED ? canDriverBegin(GDS_PIN_CAN_CS) : 0;
+  systemState.canReady = ready;
+  Serial.print("CAN:");
+  Serial.println(GDS_CAN_ENABLED ? (ready ? "READY" : "FAIL") : "SKIP");
+  Serial.println("INIT order: CAN done");
+  Serial.flush();
+
   Serial.println("INIT order: TFT begin");
   uiManager.begin(&assetManager);
   Serial.println("INIT order: TFT done, ASSET begin");
 
   systemState.assetsReady = assetManager.begin() ? 1 : 0;
   Serial.println(systemState.assetsReady ? "ASSET:READY" : "ASSET:FAIL");
+  Serial.println("INIT order: ASSET done");
   systemState.dirtyFlags |= DIRTY_FULL;
+  Serial.flush();
 
-  Serial.println("INIT order: ASSET done, CAN begin");
-  uint8_t ready = GDS_CAN_ENABLED ? canDriverBegin(GDS_PIN_CAN_CS) : 0;
-  systemState.canReady = ready;
-  Serial.print("CAN:");
-  Serial.println(GDS_CAN_ENABLED ? (ready ? "READY" : "FAIL") : "SKIP");
-  Serial.println("INIT order: CAN done");
-
-  xTaskCreatePinnedToCore(canRxTask, "CAN_RX", 4096, nullptr, 4, nullptr, 0);
+  xTaskCreatePinnedToCore(canRxTask, "CAN_RX", 8192, nullptr, 4, nullptr, 0);
   xTaskCreatePinnedToCore(canTxTask, "CAN_TX", 4096, nullptr, 3, nullptr, 0);
   xTaskCreatePinnedToCore(systemTask, "SYSTEM", 6144, nullptr, 3, nullptr, 0);
   xTaskCreatePinnedToCore(inputTask, "INPUT", 4096, nullptr, 2, nullptr, 1);
@@ -252,6 +255,24 @@ static void handleMkbdCanUiControl(SystemState& state, const CanPayload& payload
     return;
   }
 
+  if (payload.signal == CAN_SIGNAL_HU_OPEN_HOME && payload.value == 1) {
+    UiEvent event = { UI_EVENT_HOME, 0 };
+    handleUiEvent(state, event);
+    return;
+  }
+
+  if (payload.signal == CAN_SIGNAL_HU_OPEN_MAP && payload.value == 1) {
+    UiEvent event = { UI_EVENT_OPEN_MAP, 0 };
+    handleUiEvent(state, event);
+    return;
+  }
+
+  if (payload.signal == CAN_SIGNAL_HU_OPEN_MEDIA && payload.value == 1) {
+    UiEvent event = { UI_EVENT_OPEN_MEDIA, 0 };
+    handleUiEvent(state, event);
+    return;
+  }
+
   if (state.screen != HU_SCREEN_HOME) {
     return;
   }
@@ -332,6 +353,9 @@ static void markDirtyForSignal(SystemState& state, uint8_t signal) {
     case CAN_SIGNAL_MEDIA_INDEX:
     case CAN_SIGNAL_HU_FOCUS_PREV:
     case CAN_SIGNAL_HU_FOCUS_NEXT:
+    case CAN_SIGNAL_HU_OPEN_HOME:
+    case CAN_SIGNAL_HU_OPEN_MAP:
+    case CAN_SIGNAL_HU_OPEN_MEDIA:
       state.dirtyFlags |= DIRTY_MEDIA | DIRTY_HOME;
       break;
 

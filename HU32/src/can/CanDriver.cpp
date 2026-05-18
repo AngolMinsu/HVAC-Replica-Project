@@ -7,23 +7,40 @@ static uint8_t canReady = 0;
 uint8_t canDriverBegin(uint8_t csPin) {
   (void)csPin;
   canReady = 0;
+  Serial.print("TWAI pins TX:");
+  Serial.print(GDS_PIN_CAN_TX);
+  Serial.print(" RX:");
+  Serial.println(GDS_PIN_CAN_RX);
+  Serial.flush();
 
   twai_general_config_t generalConfig = TWAI_GENERAL_CONFIG_DEFAULT(
       (gpio_num_t)GDS_PIN_CAN_TX,
       (gpio_num_t)GDS_PIN_CAN_RX,
       TWAI_MODE_NORMAL);
+  generalConfig.tx_queue_len = 10;
+  generalConfig.rx_queue_len = 20;
   twai_timing_config_t timingConfig = TWAI_TIMING_CONFIG_500KBITS();
   twai_filter_config_t filterConfig = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
+  Serial.println("TWAI install start");
+  Serial.flush();
   if (twai_driver_install(&generalConfig, &timingConfig, &filterConfig) != ESP_OK) {
+    Serial.println("TWAI install fail");
+    Serial.flush();
     return 0;
   }
 
+  Serial.println("TWAI start");
+  Serial.flush();
   if (twai_start() != ESP_OK) {
     twai_driver_uninstall();
+    Serial.println("TWAI start fail");
+    Serial.flush();
     return 0;
   }
 
+  Serial.println("TWAI ready");
+  Serial.flush();
   canReady = 1;
   return 1;
 }
