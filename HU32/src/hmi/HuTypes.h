@@ -89,6 +89,7 @@ struct MediaInfo {
 struct SystemState {
   HuScreen screen;
   HuPanelFocus focusedPanel;
+  uint8_t focusedSettingTile;
   HuPanelVisualState panelVisualState;
   uint32_t panelPressedUntilMs;
 

@@ -28,6 +28,8 @@ static void systemTask(void* parameter);
 static void sendUiEvent(UiEventType type, uint8_t value);
 static void handleUiEvent(SystemState& state, const UiEvent& event);
 static void handleMkbdCanUiControl(SystemState& state, const CanPayload& payload);
+static void moveFocusNext(SystemState& state);
+static void moveFocusPrev(SystemState& state);
 static void updateSystemStats(SystemState& state);
 static void updatePressedTransition(SystemState& state);
 static void markDirtyForSignal(SystemState& state, uint8_t signal);
@@ -200,15 +202,11 @@ static void sendUiEvent(UiEventType type, uint8_t value) {
 static void handleUiEvent(SystemState& state, const UiEvent& event) {
   switch (event.type) {
     case UI_EVENT_FOCUS_NEXT:
-      state.focusedPanel = (HuPanelFocus)((state.focusedPanel + 1) % 3);
-      state.panelVisualState = HU_PANEL_FOCUSED;
-      state.dirtyFlags |= DIRTY_FOCUS | DIRTY_HOME;
+      moveFocusNext(state);
       break;
 
     case UI_EVENT_FOCUS_PREV:
-      state.focusedPanel = (HuPanelFocus)((state.focusedPanel + 2) % 3);
-      state.panelVisualState = HU_PANEL_FOCUSED;
-      state.dirtyFlags |= DIRTY_FOCUS | DIRTY_HOME;
+      moveFocusPrev(state);
       break;
 
     case UI_EVENT_SELECT:
@@ -242,11 +240,43 @@ static void handleUiEvent(SystemState& state, const UiEvent& event) {
 
     case UI_EVENT_OPEN_SETTING:
       state.screen = HU_SCREEN_SETTING;
+      state.focusedSettingTile = 0;
+      state.panelVisualState = HU_PANEL_FOCUSED;
       state.dirtyFlags |= DIRTY_FULL;
       break;
 
     default:
       break;
+  }
+}
+
+static void moveFocusNext(SystemState& state) {
+  if (state.screen == HU_SCREEN_SETTING) {
+    state.focusedSettingTile = (state.focusedSettingTile + 1) % 6;
+    state.panelVisualState = HU_PANEL_FOCUSED;
+    state.dirtyFlags |= DIRTY_FOCUS | DIRTY_SETTING;
+    return;
+  }
+
+  if (state.screen == HU_SCREEN_HOME) {
+    state.focusedPanel = (HuPanelFocus)((state.focusedPanel + 1) % 3);
+    state.panelVisualState = HU_PANEL_FOCUSED;
+    state.dirtyFlags |= DIRTY_FOCUS | DIRTY_HOME;
+  }
+}
+
+static void moveFocusPrev(SystemState& state) {
+  if (state.screen == HU_SCREEN_SETTING) {
+    state.focusedSettingTile = (state.focusedSettingTile + 5) % 6;
+    state.panelVisualState = HU_PANEL_FOCUSED;
+    state.dirtyFlags |= DIRTY_FOCUS | DIRTY_SETTING;
+    return;
+  }
+
+  if (state.screen == HU_SCREEN_HOME) {
+    state.focusedPanel = (HuPanelFocus)((state.focusedPanel + 2) % 3);
+    state.panelVisualState = HU_PANEL_FOCUSED;
+    state.dirtyFlags |= DIRTY_FOCUS | DIRTY_HOME;
   }
 }
 
@@ -270,10 +300,6 @@ static void handleMkbdCanUiControl(SystemState& state, const CanPayload& payload
   if (payload.signal == CAN_SIGNAL_HU_OPEN_MEDIA && payload.value == 1) {
     UiEvent event = { UI_EVENT_OPEN_MEDIA, 0 };
     handleUiEvent(state, event);
-    return;
-  }
-
-  if (state.screen != HU_SCREEN_HOME) {
     return;
   }
 

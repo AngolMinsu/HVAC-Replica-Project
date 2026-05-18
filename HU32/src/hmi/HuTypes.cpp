@@ -4,6 +4,7 @@ void initSystemState(SystemState& state) {
   memset(&state, 0, sizeof(state));
   state.screen = HU_SCREEN_HOME;
   state.focusedPanel = HU_PANEL_MEDIA;
+  state.focusedSettingTile = 0;
   state.panelVisualState = HU_PANEL_FOCUSED;
   state.driverTemp = 24;
   state.passengerTemp = 24;
@@ -78,4 +79,3 @@ uint32_t dirtyForScreen(HuScreen screen) {
     default: return DIRTY_HOME;
   }
 }
-

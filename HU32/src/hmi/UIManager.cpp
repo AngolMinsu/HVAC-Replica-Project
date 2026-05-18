@@ -60,6 +60,21 @@ static void makeValueRow(lv_obj_t* parent, const char* name, const char* value, 
   lv_obj_set_style_text_align(valueLabel, LV_TEXT_ALIGN_RIGHT, 0);
 }
 
+static lv_obj_t* makeSettingTile(lv_obj_t* parent, int16_t x, int16_t y, const char* title, const char* detail, bool focused) {
+  lv_obj_t* tile = makePanel(parent, x, y, 118, 78, focused);
+  lv_obj_set_style_radius(tile, 8, 0);
+  lv_obj_set_style_pad_all(tile, 8, 0);
+
+  lv_obj_t* titleLabel = makeLabel(tile, title, COLOR_TEXT, 0, 0);
+  lv_obj_set_width(titleLabel, 100);
+  lv_label_set_long_mode(titleLabel, LV_LABEL_LONG_WRAP);
+
+  lv_obj_t* detailLabel = makeLabel(tile, detail, COLOR_MUTED, 0, 44);
+  lv_obj_set_width(detailLabel, 100);
+  lv_label_set_long_mode(detailLabel, LV_LABEL_LONG_WRAP);
+  return tile;
+}
+
 void UIManager::begin(AssetManager* assetManager) {
   assets = assetManager;
   Serial.println("TFT init start");
@@ -266,15 +281,13 @@ void UIManager::buildMap(lv_obj_t* parent, const SystemState& state) {
 }
 
 void UIManager::buildSetting(lv_obj_t* parent, const SystemState& state) {
-  lv_obj_t* panel = makePanel(parent, 24, 58, 432, 190, true);
-  makeLabel(panel, "SYSTEM", COLOR_TEXT, 0, 0);
+  (void)state;
+  makeLabel(parent, "SETTING", COLOR_TEXT, 24, 50);
 
-  char line[40];
-  snprintf(line, sizeof(line), "%lu", (unsigned long)state.freeHeap);
-  makeValueRow(panel, "Heap", line, 44);
-  snprintf(line, sizeof(line), "%lu", (unsigned long)state.fps);
-  makeValueRow(panel, "FPS", line, 76);
-  snprintf(line, sizeof(line), "0x%03X", state.lastCanId);
-  makeValueRow(panel, "Last CAN", line, 108);
-  makeValueRow(panel, "Input", "MKBD INFO PSG", 140);
+  makeSettingTile(parent, 36, 82, "Device", "HU32 info", state.focusedSettingTile == 0);
+  makeSettingTile(parent, 181, 82, "Wi-Fi", "AP / Connect", state.focusedSettingTile == 1);
+  makeSettingTile(parent, 326, 82, "Connect", "Devices", state.focusedSettingTile == 2);
+  makeSettingTile(parent, 36, 174, "Profile", "User", state.focusedSettingTile == 3);
+  makeSettingTile(parent, 181, 174, "Button", "MKBD input", state.focusedSettingTile == 4);
+  makeSettingTile(parent, 326, 174, "General", "UI", state.focusedSettingTile == 5);
 }
