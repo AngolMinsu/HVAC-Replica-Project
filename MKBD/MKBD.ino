@@ -12,6 +12,7 @@
 #include "can/CanHandler.h"
 #include "can/CanMonitor.h"
 #include "can/CanProtocol.h"
+#include "task/MkbdScheduler.h"
 
 // =====================================================
 // SH1106 OLED + DATC/INFO MODE DEMO
@@ -51,7 +52,6 @@ const unsigned long encoderDebounceDelay = GDS_ENCODER_DEBOUNCE_DELAY_MS;
 
 // ===== 화면 갱신 =====
 unsigned long lastDisplayTime = 0;
-const unsigned long displayInterval = GDS_DISPLAY_INTERVAL_MS;
 
 uint8_t canTxCounter = 0;
 
@@ -105,39 +105,7 @@ void setup() {
 }
 
 void loop() {
-  uint8_t button = readButtonEvent();
-  if (button != APP_BUTTON_NONE) {
-    SystemState before = state;
-    uint8_t changed = handleButtonAction(state, button);
-    uint8_t menuSent = broadcastButtonMenuEvent(button, before);
-    if (changed && !menuSent) {
-      printSystemStatus(state);
-      broadcastChangedHvacStatus(before, state);
-    }
-  }
-
-  uint8_t encoderEvent = readEncoderEvent();
-  if (encoderEvent != ENCODER_EVENT_NONE) {
-    SystemState before = state;
-    uint8_t changed = handleEncoderAction(state, encoderEvent);
-    if (changed) {
-      printSystemStatus(state);
-      broadcastChangedHvacStatus(before, state);
-    }
-    broadcastEncoderSwitchEvent(encoderEvent, before);
-  }
-
-  if (processCanReceive()) {
-    printSystemStatus(state);
-  }
-
-  // 화면이 INFO여도 공조 장치는 계속 동작해야 하므로 항상 실행
-  updateFanMotor();
-
-  if (shouldRefreshDisplay(millis(), lastDisplayTime, displayInterval)) {
-    drawCurrentScreen();
-    lastDisplayTime = millis();
-  }
+  mkbdSchedulerRun();
 }
 
 ButtonLevels readButtonLevels() {
@@ -369,3 +337,8 @@ uint8_t broadcastIfSignalChanged(const SystemState& before, const SystemState& a
 #include "can/CanHandler.cpp"
 #include "can/CanMonitor.cpp"
 #include "can/CanDriver.cpp"
+#include "task/MkbdScheduler.cpp"
+#include "task/task10ms/input/InputTask.cpp"
+#include "task/task10ms/can/CanRxTask.cpp"
+#include "task/task10ms/output/OutputTask.cpp"
+#include "task/task100ms/display/DisplayTask.cpp"
