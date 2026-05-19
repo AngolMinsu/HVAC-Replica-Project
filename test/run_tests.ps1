@@ -96,6 +96,24 @@ Invoke-TestBuild `
   )
 
 Invoke-TestBuild `
+  -Name "MKBD_TASK" `
+  -Output "$PSScriptRoot\MKBD\task\test_mkbd_task.exe" `
+  -Includes @("$PSScriptRoot\TestSupport", "$root\MKBD") `
+  -Sources @(
+    "$PSScriptRoot\MKBD\task\test_main.cpp",
+    "$PSScriptRoot\MKBD\task\Test_MkbdScheduler.cpp",
+    "$root\MKBD\task\MkbdScheduler.cpp",
+    "$root\MKBD\task\task10ms\input\InputTask.cpp",
+    "$root\MKBD\task\task10ms\can\CanRxTask.cpp",
+    "$root\MKBD\task\task10ms\output\OutputTask.cpp",
+    "$root\MKBD\task\task100ms\display\DisplayTask.cpp",
+    "$root\MKBD\app\AppLogic.cpp",
+    "$root\MKBD\state\State.cpp",
+    "$root\MKBD\display\Datc.cpp",
+    "$root\MKBD\display\Info.cpp"
+  )
+
+Invoke-TestBuild `
   -Name "MKBD_CAN" `
   -Output "$PSScriptRoot\MKBD\can\test_mkbd_can.exe" `
   -Includes @("$PSScriptRoot\TestSupport", "$root\MKBD") `

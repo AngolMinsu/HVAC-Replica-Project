@@ -5,6 +5,7 @@
 
 #define MCP_ANY 0
 #define CAN_500KBPS 0
+#define MCP_8MHZ 0
 #define MCP_16MHZ 0
 #define MCP_NORMAL 0
 #define CAN_OK 0

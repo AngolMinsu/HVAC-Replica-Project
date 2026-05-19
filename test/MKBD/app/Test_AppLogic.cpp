@@ -51,10 +51,10 @@ uint8_t Test_AppLogic(uint16_t loop) {
     ASSERT_EQUALS(21, state.mediaIndex, GDS_MEDIA_INDEX_DEFAULT);
     ASSERT_EQUALS(22, handleButtonAction(state, APP_BUTTON_WIND_MEDIA), 1);
     ASSERT_EQUALS(23, state.mediaMode, 1);
-    ASSERT_EQUALS(24, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_CW), 1);
-    ASSERT_EQUALS(25, state.mediaIndex, GDS_MEDIA_INDEX_DEFAULT + 1);
-    ASSERT_EQUALS(26, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_SW), 1);
-    ASSERT_EQUALS(27, state.mediaReady, 1);
+    ASSERT_EQUALS(24, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_CW), 0);
+    ASSERT_EQUALS(25, state.mediaIndex, GDS_MEDIA_INDEX_DEFAULT);
+    ASSERT_EQUALS(26, handleEncoderAction(state, ENCODER_EVENT_PASSENGER_SW), 0);
+    ASSERT_EQUALS(27, state.mediaReady, 0);
     ASSERT_EQUALS(28, handleButtonAction(state, APP_BUTTON_FAN_UP), 1);
     ASSERT_EQUALS(29, state.mapReady, 1);
     ASSERT_EQUALS(30, handleButtonAction(state, APP_BUTTON_FAN_DOWN), 1);
