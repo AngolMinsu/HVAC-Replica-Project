@@ -1,5 +1,8 @@
 #include "HuTypes.h"
 
+#include <stdio.h>
+#include <string.h>
+
 void initSystemState(SystemState& state) {
   memset(&state, 0, sizeof(state));
   state.screen = HU_SCREEN_HOME;

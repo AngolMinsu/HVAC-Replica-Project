@@ -42,6 +42,18 @@ Invoke-TestBuild `
   )
 
 Invoke-TestBuild `
+  -Name "HU32" `
+  -Output "$PSScriptRoot\HU32\test_hu32.exe" `
+  -Includes @("$PSScriptRoot\TestSupport", "$root\HU32", "$root\HU32\src") `
+  -Sources @(
+    "$PSScriptRoot\HU32\test_main.cpp",
+    "$PSScriptRoot\HU32\Test_Hu32CanProtocol.cpp",
+    "$PSScriptRoot\HU32\Test_Hu32Types.cpp",
+    "$root\HU32\src\can\CanProtocol.cpp",
+    "$root\HU32\src\hmi\HuTypes.cpp"
+  )
+
+Invoke-TestBuild `
   -Name "MKBD_ROOT" `
   -Output "$PSScriptRoot\MKBD\test_mkbd_root.exe" `
   -Includes @("$PSScriptRoot\TestSupport", "$root\MKBD") `
