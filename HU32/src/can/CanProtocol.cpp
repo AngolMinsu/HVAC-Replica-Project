@@ -73,6 +73,11 @@ const char* canSignalToText(uint8_t signal) {
     case CAN_SIGNAL_MEDIA_INDEX: return "MediaIndex";
     case CAN_SIGNAL_DRIVER_ENCODER_SW: return "DrvEncSw";
     case CAN_SIGNAL_PASSENGER_ENCODER_SW: return "PsgEncSw";
+    case CAN_SIGNAL_HU_FOCUS_PREV: return "HuFocusPrev";
+    case CAN_SIGNAL_HU_FOCUS_NEXT: return "HuFocusNext";
+    case CAN_SIGNAL_HU_OPEN_HOME: return "HuOpenHome";
+    case CAN_SIGNAL_HU_OPEN_MAP: return "HuOpenMap";
+    case CAN_SIGNAL_HU_OPEN_MEDIA: return "HuOpenMedia";
     default: return "Unknown";
   }
 }

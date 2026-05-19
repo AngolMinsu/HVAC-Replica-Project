@@ -49,7 +49,7 @@ uint8_t handleEncoderAction(SystemState& state, uint8_t encoderEvent) {
     case ENCODER_EVENT_DRIVER_SW: return infoToggleMute(state);
     case ENCODER_EVENT_PASSENGER_CW: return 0;
     case ENCODER_EVENT_PASSENGER_CCW: return 0;
-    case ENCODER_EVENT_PASSENGER_SW: return infoSelect(state);
+    case ENCODER_EVENT_PASSENGER_SW: return 0;
     default: return 0;
   }
 }

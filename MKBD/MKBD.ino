@@ -109,11 +109,11 @@ void loop() {
   if (button != APP_BUTTON_NONE) {
     SystemState before = state;
     uint8_t changed = handleButtonAction(state, button);
-    if (changed) {
+    uint8_t menuSent = broadcastButtonMenuEvent(button, before);
+    if (changed && !menuSent) {
       printSystemStatus(state);
       broadcastChangedHvacStatus(before, state);
     }
-    broadcastButtonMenuEvent(button, before);
   }
 
   uint8_t encoderEvent = readEncoderEvent();
@@ -302,6 +302,12 @@ uint8_t broadcastEncoderSwitchEvent(uint8_t encoderEvent, const SystemState& inp
     if (encoderEvent == ENCODER_EVENT_PASSENGER_CCW) {
       return broadcastHvacStatus(CAN_SIGNAL_HU_FOCUS_PREV);
     }
+
+    if (encoderEvent == ENCODER_EVENT_PASSENGER_SW) {
+      return broadcastHvacStatus(CAN_SIGNAL_PASSENGER_ENCODER_SW);
+    }
+
+    return 0;
   }
 
   if (encoderEvent == ENCODER_EVENT_DRIVER_SW) {
