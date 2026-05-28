@@ -70,4 +70,6 @@ void huRtosAppBegin() {
   xTaskCreatePinnedToCore(huUiTask, "UI", 8192, &context, 2, nullptr, 1);
 
   Serial.println("HU32 ready");
+  Serial.print("CAN status after boot:");
+  Serial.println(systemState.canReady ? "READY" : "FAIL");
 }

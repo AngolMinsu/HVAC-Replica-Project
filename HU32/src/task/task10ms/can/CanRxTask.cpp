@@ -8,6 +8,7 @@
 void huCanRxTask(void* parameter) {
   HuRtosContext* context = static_cast<HuRtosContext*>(parameter);
   TickType_t delayTicks = pdMS_TO_TICKS(5);
+  Serial.println("CAN_RX task running");
 
   for (;;) {
     CanFrame frame;
