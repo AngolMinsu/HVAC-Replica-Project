@@ -1,4 +1,7 @@
 {
-    "sketch": "HU7.ino",
-    "output": "build"
+  "sketch": "HU7.ino",
+  "output": "build",
+  "configuration": "JTAGAdapter=default,PSRAM=opi,FlashMode=dio,FlashSize=16M,LoopCore=1,EventsCore=1,USBMode=hwcdc,CDCOnBoot=default,MSCOnBoot=default,DFUOnBoot=default,UploadMode=default,PartitionScheme=huge_app,CPUFreq=240,UploadSpeed=921600,DebugLevel=none,EraseFlash=none",
+  "board": "esp32:esp32:esp32s3",
+  "port": "COM12"
 }

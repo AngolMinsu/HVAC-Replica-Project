@@ -93,14 +93,25 @@ esp_lcd_panel_handle_t waveshare_esp32_s3_rgb_lcd_init()
         },
     };
 
-    // Create and register the RGB LCD panel driver with the configuration above
-    ESP_ERROR_CHECK(esp_lcd_new_rgb_panel(&panel_config, &panel_handle));
+    ESP_LOGI(TAG, "Free internal heap: %u", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+    ESP_LOGI(TAG, "Free PSRAM heap: %u", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+
+    esp_err_t err = esp_lcd_new_rgb_panel(&panel_config, &panel_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_lcd_new_rgb_panel failed: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Check Arduino board PSRAM setting. Use OPI PSRAM for ESP32-S3 N16R8.");
+        return NULL;
+    }
 
     // Log the initialization of the RGB LCD panel
     ESP_LOGI(TAG, "Initialize RGB LCD panel");
 
     // Initialize the RGB LCD panel
-    ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
+    err = esp_lcd_panel_init(panel_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_lcd_panel_init failed: %s", esp_err_to_name(err));
+        return NULL;
+    }
 
     esp_lcd_rgb_panel_event_callbacks_t cbs = {
 #if EXAMPLE_RGB_BOUNCE_BUFFER_SIZE > 0
@@ -109,7 +120,11 @@ esp_lcd_panel_handle_t waveshare_esp32_s3_rgb_lcd_init()
         .on_vsync = rgb_lcd_on_vsync_event, // Callback for vertical sync
 #endif
     };
-    ESP_ERROR_CHECK(esp_lcd_rgb_panel_register_event_callbacks(panel_handle, &cbs, NULL)); // Register event callbacks
+    err = esp_lcd_rgb_panel_register_event_callbacks(panel_handle, &cbs, NULL);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_lcd_rgb_panel_register_event_callbacks failed: %s", esp_err_to_name(err));
+        return NULL;
+    }
 
     // Return success status
     return panel_handle;

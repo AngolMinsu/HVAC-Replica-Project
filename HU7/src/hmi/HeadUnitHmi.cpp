@@ -14,6 +14,7 @@ void headUnitHmiBegin() {
   if (displayDriverLock(-1)) {
     ui_init();
     headUnitHmiUpdateClock();
+    lv_refr_now(NULL);
     displayDriverUnlock();
   }
 }
