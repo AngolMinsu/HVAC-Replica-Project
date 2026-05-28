@@ -42,27 +42,44 @@ src/generated/squareline
 Project-owned code:
 
 ```text
+src/can/CanDriver.*
+src/can/CanMonitor.*
+src/can/CanProtocol.*
 src/driver/DisplayDriver.*
+src/hmi/HeadUnitApp.*
 src/hmi/HeadUnitHmi.*
-src/task/TaskInit.*
-src/task/Task10msUi.*
+src/task/task10ms/can/CanRxTask.*
+src/task/task10ms/can/CanTxTask.*
+src/task/task10ms/input/InputTask.*
+src/task/task20ms/ui/UiTask.*
 ```
 
 App flow:
 
 ```text
 HU7.ino
--> taskInitBegin()
+-> headUnitAppBegin()
 -> displayDriverBegin()
 -> touch_gt911_init()
 -> waveshare_esp32_s3_rgb_lcd_init()
 -> lvgl_port_init()
 -> ui_init()
+-> canDriverBegin()
+-> xTaskCreatePinnedToCore(CAN_RX / CAN_TX / INPUT / UI)
 
 loop()
--> task10msUiMain()
+-> vTaskDelay()
+
+UI task
 -> headUnitHmiTick()
 -> displayDriverLoop()
+```
+
+Note:
+
+```text
+Current CAN driver is a structural placeholder.
+Actual 7B CAN pin and protocol connection should be implemented in src/can.
 ```
 
 Board setting:

@@ -1,10 +1,11 @@
-#include "src/task/TaskInit.h"
-#include "src/task/Task10msUi.h"
+#include <Arduino.h>
+
+#include "src/hmi/HeadUnitApp.h"
 
 void setup() {
-  taskInitBegin();
+  headUnitAppBegin();
 }
 
 void loop() {
-  task10msUiMain();
+  vTaskDelay(pdMS_TO_TICKS(1000));
 }
