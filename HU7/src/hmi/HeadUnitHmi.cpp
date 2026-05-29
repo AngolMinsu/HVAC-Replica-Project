@@ -26,7 +26,7 @@ static const char* windModeToText(uint8_t value) {
 }
 
 static void setTextIfReady(lv_obj_t* label, const char* text) {
-  if (label != NULL) {
+  if (label != NULL && text != NULL) {
     lv_label_set_text(label, text);
   }
 }
@@ -47,6 +47,10 @@ static void refreshHvacInfoLabels() {
 }
 
 static void loadScreen(lv_obj_t** screen, lv_scr_load_anim_t anim, void (*init)(void)) {
+  if (screen == NULL || init == NULL) {
+    return;
+  }
+
   if (displayDriverLock(50)) {
     _ui_screen_change(screen, anim, 0, 0, init);
     headUnitHmiUpdateClock();

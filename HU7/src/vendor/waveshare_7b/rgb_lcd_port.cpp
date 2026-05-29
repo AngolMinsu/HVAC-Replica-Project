@@ -146,22 +146,32 @@ esp_lcd_panel_handle_t waveshare_esp32_s3_rgb_lcd_init()
  */
 void wavesahre_rgb_lcd_display_window(int16_t Xstart, int16_t Ystart, int16_t Xend, int16_t Yend, uint8_t *Image)
 {
-    // Ensure Xstart is within valid range, clip Xend to the screen width if necessary
+    if (panel_handle == NULL || Image == NULL) {
+        ESP_LOGE(TAG, "display_window failed: panel or image is NULL");
+        return;
+    }
+
     if (Xstart < 0) Xstart = 0;
-    else if (Xend > EXAMPLE_LCD_H_RES) Xend = EXAMPLE_LCD_H_RES;
-
-    // Ensure Ystart is within valid range, clip Yend to the screen height if necessary
     if (Ystart < 0) Ystart = 0;
-    else if (Yend > EXAMPLE_LCD_V_RES) Yend = EXAMPLE_LCD_V_RES;
+    if (Xend > EXAMPLE_LCD_H_RES) Xend = EXAMPLE_LCD_H_RES;
+    if (Yend > EXAMPLE_LCD_V_RES) Yend = EXAMPLE_LCD_V_RES;
+    if (Xend <= Xstart || Yend <= Ystart) {
+        ESP_LOGE(TAG, "display_window failed: invalid area");
+        return;
+    }
 
-    // Calculate the width and height of the cropped region
-    int crop_width = Xend - Xstart;
-    int crop_height = Yend - Ystart;
+    size_t crop_width = (size_t)(Xend - Xstart);
+    size_t crop_height = (size_t)(Yend - Ystart);
+    size_t alloc_size = 0;
+    if (__builtin_mul_overflow(crop_width, crop_height, &alloc_size) ||
+        __builtin_mul_overflow(alloc_size, (size_t)2, &alloc_size)) {
+        ESP_LOGE(TAG, "display_window failed: size overflow");
+        return;
+    }
 
-    // Allocate memory for the cropped image data
-    uint8_t *dst_data = (uint8_t *)malloc(crop_width * crop_height * 2); // 2 bytes per pixel
+    uint8_t *dst_data = (uint8_t *)malloc(alloc_size);
     if (!dst_data) {
-        printf("Error: Failed to allocate memory for cropped bitmap.\n");
+        ESP_LOGE(TAG, "display_window failed: malloc %u bytes", (unsigned int)alloc_size);
         return;
     }
 
@@ -177,7 +187,10 @@ void wavesahre_rgb_lcd_display_window(int16_t Xstart, int16_t Ystart, int16_t Xe
 
     // Draw the cropped region onto the LCD at the specified coordinates
     // The esp_lcd_panel_draw_bitmap function uses absolute screen coordinates.
-    esp_lcd_panel_draw_bitmap(panel_handle, Xstart, Ystart, Xend, Yend, dst_data);
+    esp_err_t err = esp_lcd_panel_draw_bitmap(panel_handle, Xstart, Ystart, Xend, Yend, dst_data);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_lcd_panel_draw_bitmap failed: %s", esp_err_to_name(err));
+    }
 
     // Free the allocated memory for the cropped image buffer
     free(dst_data);
@@ -194,13 +207,28 @@ void wavesahre_rgb_lcd_display_window(int16_t Xstart, int16_t Ystart, int16_t Xe
  */
 void wavesahre_rgb_lcd_display(uint8_t *Image)
 {
-    // Draw the entire image on the screen
-    esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, EXAMPLE_LCD_H_RES, EXAMPLE_LCD_V_RES, Image);
+    if (panel_handle == NULL || Image == NULL) {
+        ESP_LOGE(TAG, "display failed: panel or image is NULL");
+        return;
+    }
+
+    esp_err_t err = esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, EXAMPLE_LCD_H_RES, EXAMPLE_LCD_V_RES, Image);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_lcd_panel_draw_bitmap failed: %s", esp_err_to_name(err));
+    }
 }
 
 void waveshare_get_frame_buffer(void **buf1, void **buf2)
 {
-    ESP_ERROR_CHECK(esp_lcd_rgb_panel_get_frame_buffer(panel_handle, 2, buf1, buf2));
+    if (panel_handle == NULL || buf1 == NULL || buf2 == NULL) {
+        ESP_LOGE(TAG, "get_frame_buffer failed: invalid argument");
+        return;
+    }
+
+    esp_err_t err = esp_lcd_rgb_panel_get_frame_buffer(panel_handle, 2, buf1, buf2);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_lcd_rgb_panel_get_frame_buffer failed: %s", esp_err_to_name(err));
+    }
 }
 /**
  * @brief Turn on the RGB LCD screen backlight.
