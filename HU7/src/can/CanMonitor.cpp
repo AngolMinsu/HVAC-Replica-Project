@@ -17,3 +17,20 @@ void canMonitorPrintFrame(const char* label, const CanFrame& frame) {
   }
   Serial.println();
 }
+
+void canMonitorPrintPayloadSummary(const CanPayload& payload) {
+  Serial.print("  Service:0x");
+  if (payload.service < 0x10) Serial.print('0');
+  Serial.print(payload.service, HEX);
+  Serial.print(" Result:0x");
+  if (payload.result < 0x10) Serial.print('0');
+  Serial.print(payload.result, HEX);
+  Serial.print(" Signal:");
+  Serial.print(canSignalToText(payload.signal));
+  Serial.print(" Value:");
+  Serial.print(payload.value);
+  Serial.print(" Counter:");
+  Serial.print(payload.counter);
+  Serial.print(" Checksum:");
+  Serial.println(canValidateChecksum(payload) ? "OK" : "NOK");
+}

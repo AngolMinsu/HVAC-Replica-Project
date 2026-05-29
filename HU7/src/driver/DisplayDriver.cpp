@@ -4,6 +4,10 @@
 
 #include "../vendor/waveshare_7b/lvgl_port.h"
 
+static void displayDriverBacklightOn() {
+  wavesahre_rgb_lcd_bl_on();
+}
+
 uint8_t displayDriverBegin() {
   Serial.println("Initializing Waveshare ESP32-S3 Touch LCD 7B");
 
@@ -19,7 +23,7 @@ uint8_t displayDriverBegin() {
     return 0;
   }
 
-  wavesahre_rgb_lcd_bl_on();
+  displayDriverBacklightOn();
 
   Serial.println("Initializing LVGL port");
   if (lvgl_port_init(panelHandle, touchHandle) != ESP_OK) {
@@ -31,7 +35,6 @@ uint8_t displayDriverBegin() {
 }
 
 void displayDriverLoop() {
-  delay(5);
 }
 
 uint8_t displayDriverLock(int timeoutMs) {

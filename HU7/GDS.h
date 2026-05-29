@@ -4,9 +4,10 @@
 #include <Arduino.h>
 
 // Waveshare ESP32-S3-Touch-LCD-7B
-const uint8_t GDS_CAN_ENABLED = 0;
-const uint8_t GDS_PIN_CAN_TX = 255;
-const uint8_t GDS_PIN_CAN_RX = 255;
+const uint8_t GDS_CAN_ENABLED = 1;
+const uint8_t GDS_PIN_CAN_TX = 20;
+const uint8_t GDS_PIN_CAN_RX = 19;
+const uint8_t GDS_IO_CAN_SELECT = 5;
 
 const uint16_t GDS_TFT_WIDTH = 1024;
 const uint16_t GDS_TFT_HEIGHT = 600;
