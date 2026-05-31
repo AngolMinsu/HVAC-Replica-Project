@@ -1,9 +1,9 @@
-void setup()
-{
-	
+#include "src/gateway/GatewayApp.h"
+
+void setup() {
+  gatewayAppBegin();
 }
 
-void loop()
-{
-	
+void loop() {
+  gatewayAppLoop();
 }
