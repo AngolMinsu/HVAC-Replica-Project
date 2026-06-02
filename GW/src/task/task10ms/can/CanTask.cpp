@@ -39,6 +39,7 @@ void gatewayCanTask(void* parameter) {
   for (;;) {
     twaiCanDriverPollHealth();
     mcpCanDriverPollHealth();
+    gatewayRouterPrintStats();
 
     routeTwaiToMcp();
     routeMcpToTwai();

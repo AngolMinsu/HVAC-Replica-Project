@@ -27,7 +27,7 @@ void gatewayAppBegin() {
       "GW_CAN_10MS",
       4096,
       NULL,
-      2,
+      3,
       NULL,
       1);
 }
