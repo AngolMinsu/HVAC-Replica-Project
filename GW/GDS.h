@@ -6,16 +6,21 @@
 const unsigned long GDS_SERIAL_BAUD = 115200;
 const uint16_t GDS_TASK_CAN_MS = 10;
 
-// Single MCP2515 GW starts as monitor/validator. Set 1 only when forwarding is needed.
-const uint8_t GDS_GW_FORWARD_ENABLED = 0;
+// TWAI bus <-> MCP2515 bus forwarding.
+const uint8_t GDS_GW_FORWARD_ENABLED = 1;
 
-// ESP32-S3 + MCP2515 SPI pin map.
-const uint8_t GDS_CAN_ENABLED = 1;
-const uint8_t GDS_PIN_CAN_INT = 39;
-const uint8_t GDS_PIN_CAN_CS = 38;
-const uint8_t GDS_PIN_CAN_SCK = 37;
-const uint8_t GDS_PIN_CAN_MOSI = 36; // MCP2515 SI
-const uint8_t GDS_PIN_CAN_MISO = 35; // MCP2515 SO
+// ESP32-S3 TWAI + SN65HVD230 side.
+const uint8_t GDS_TWAI_ENABLED = 1;
+const uint8_t GDS_PIN_TWAI_TX = 17;
+const uint8_t GDS_PIN_TWAI_RX = 18;
+
+// ESP32-S3 SPI + MCP2515 side.
+const uint8_t GDS_MCP_ENABLED = 1;
+const uint8_t GDS_PIN_MCP_INT = 39;
+const uint8_t GDS_PIN_MCP_CS = 38;
+const uint8_t GDS_PIN_MCP_SCK = 37;
+const uint8_t GDS_PIN_MCP_MOSI = 36; // MCP2515 SI
+const uint8_t GDS_PIN_MCP_MISO = 35; // MCP2515 SO
 
 const uint16_t GDS_CAN_ID_CONTROL_REQUEST = 0x100;
 const uint16_t GDS_CAN_ID_CONTROL_RESPONSE = 0x101;

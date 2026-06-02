@@ -11,15 +11,19 @@ static uint8_t isRoutableId(uint16_t id) {
          id == GDS_CAN_ID_HVAC_STATUS;
 }
 
-uint8_t gatewayRouteFrame(const CanFrame& rxFrame, CanFrame& txFrame) {
+uint8_t gatewayRouteFrame(const char* sourceName, const CanFrame& rxFrame, CanFrame& txFrame) {
   if (!isRoutableId(rxFrame.id)) {
-    Serial.print("GW DROP unknown ID:0x");
+    Serial.print("GW DROP ");
+    Serial.print(sourceName);
+    Serial.print(" unknown ID:0x");
     Serial.println(rxFrame.id, HEX);
     return 0;
   }
 
   if (rxFrame.dlc != GDS_CAN_DLC) {
-    Serial.print("GW DROP invalid DLC:");
+    Serial.print("GW DROP ");
+    Serial.print(sourceName);
+    Serial.print(" invalid DLC:");
     Serial.println(rxFrame.dlc);
     return 0;
   }
@@ -28,17 +32,22 @@ uint8_t gatewayRouteFrame(const CanFrame& rxFrame, CanFrame& txFrame) {
   canMonitorPrintPayloadSummary(payload);
 
   if (!canValidateChecksum(payload)) {
-    Serial.println("GW DROP checksum");
+    Serial.print("GW DROP ");
+    Serial.print(sourceName);
+    Serial.println(" checksum");
     return 0;
   }
 
   if (!canIsKnownSignal(payload.signal)) {
-    Serial.print("GW DROP unknown signal:0x");
+    Serial.print("GW DROP ");
+    Serial.print(sourceName);
+    Serial.print(" unknown signal:0x");
     Serial.println(payload.signal, HEX);
     return 0;
   }
 
   txFrame = rxFrame;
-  Serial.println("GW ROUTE pass-through");
+  Serial.print("GW ROUTE ");
+  Serial.println(sourceName);
   return 1;
 }

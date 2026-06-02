@@ -3,7 +3,8 @@
 #include <Arduino.h>
 
 #include "../../GDS.h"
-#include "../can/CanDriver.h"
+#include "../can/McpCanDriver.h"
+#include "../can/TwaiCanDriver.h"
 #include "../task/task10ms/can/CanTask.h"
 
 void gatewayAppBegin() {
@@ -13,9 +14,13 @@ void gatewayAppBegin() {
   Serial.println();
   Serial.println("GW Gateway Node start");
 
-  uint8_t canReady = canDriverBegin();
-  Serial.print("GW CAN:");
-  Serial.println(canReady ? "READY" : "FAIL");
+  uint8_t twaiReady = twaiCanDriverBegin();
+  Serial.print("GW TWAI:");
+  Serial.println(twaiReady ? "READY" : "FAIL");
+
+  uint8_t mcpReady = mcpCanDriverBegin();
+  Serial.print("GW MCP:");
+  Serial.println(mcpReady ? "READY" : "FAIL");
 
   xTaskCreatePinnedToCore(
       gatewayCanTask,
