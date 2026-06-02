@@ -6,8 +6,8 @@
 const unsigned long GDS_SERIAL_BAUD = 115200;
 const uint16_t GDS_TASK_CAN_MS = 10;
 
-// TWAI bus <-> MCP2515 bus forwarding.
-const uint8_t GDS_GW_FORWARD_ENABLED = 1;
+// Keep forwarding off while checking which CAN side receives the bus traffic.
+const uint8_t GDS_GW_FORWARD_ENABLED = 0;
 
 // ESP32-S3 TWAI + SN65HVD230 side.
 const uint8_t GDS_TWAI_ENABLED = 1;
