@@ -7,14 +7,15 @@
 const uint8_t GDS_PIN_DRIVER_ENC_A = 2;
 const uint8_t GDS_PIN_DRIVER_ENC_B = 3;
 const uint8_t GDS_PIN_DRIVER_ENC_SW = 4;
-const uint8_t GDS_PIN_BTN_FAN_UP = 5;
-const uint8_t GDS_PIN_BTN_FAN_DOWN = 6;
-const uint8_t GDS_PIN_BTN_SCREEN = 7;
-const uint8_t GDS_PIN_FAN_MOTOR = 9;
+const uint8_t GDS_PIN_PASSENGER_ENC_A = 5;
+const uint8_t GDS_PIN_PASSENGER_ENC_B = 6;
+const uint8_t GDS_PIN_PASSENGER_ENC_SW = 7;
+const uint8_t GDS_PIN_FAN_MOTOR = 8;
 const uint8_t GDS_PIN_CAN_CS = 10;
-const uint8_t GDS_PIN_PASSENGER_ENC_A = A0;
-const uint8_t GDS_PIN_PASSENGER_ENC_B = A1;
-const uint8_t GDS_PIN_PASSENGER_ENC_SW = A2;
+const int8_t GDS_PIN_CAN_INT = -1;
+const uint8_t GDS_PIN_BTN_SCREEN = A0;
+const uint8_t GDS_PIN_BTN_FAN_UP = A1;
+const uint8_t GDS_PIN_BTN_FAN_DOWN = A2;
 const uint8_t GDS_PIN_BTN_WIND_MEDIA = A3;
 
 // Timing
@@ -94,3 +95,5 @@ const uint8_t GDS_CAN_ERROR_COUNTER = 0x06;
 const uint8_t GDS_CAN_ERROR_DRIVER = 0x07;
 
 #endif
+
+

@@ -29,6 +29,8 @@ struct EncoderHistory {
   uint8_t prevPassengerA;
   uint8_t prevPassengerB;
   uint8_t prevPassengerSw;
+  int8_t driverStep;
+  int8_t passengerStep;
   unsigned long lastEventTime;
 };
 
