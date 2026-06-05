@@ -6,9 +6,14 @@
 #include "../../../can/TwaiCanDriver.h"
 #include "../../../gateway/GatewayRouter.h"
 
+static uint32_t twaiRxCount = 0;
+static uint32_t mcpRxCount = 0;
+
 static void routeTwaiToMcp() {
   CanFrame rxFrame = {};
   while (twaiCanDriverReceive(rxFrame)) {
+    Serial.print("GW RX TWAI #");
+    Serial.println(++twaiRxCount);
     canMonitorPrintFrame("GW RX TWAI", rxFrame);
 
     CanFrame txFrame = {};
@@ -22,6 +27,8 @@ static void routeTwaiToMcp() {
 static void routeMcpToTwai() {
   CanFrame rxFrame = {};
   while (mcpCanDriverReceive(rxFrame)) {
+    Serial.print("GW RX MCP #");
+    Serial.println(++mcpRxCount);
     canMonitorPrintFrame("GW RX MCP", rxFrame);
 
     CanFrame txFrame = {};
