@@ -25,8 +25,13 @@ void canPayloadToBytes(const CanPayload& payload, uint8_t* data) {
 }
 
 uint8_t canCalculateChecksum(const CanPayload& payload) {
-  return (uint8_t)(payload.service + payload.result + payload.signal + payload.value +
-                   payload.option + payload.reserved + payload.counter);
+  return payload.service ^
+         payload.result ^
+         payload.signal ^
+         payload.value ^
+         payload.option ^
+         payload.reserved ^
+         payload.counter;
 }
 
 uint8_t canValidateChecksum(const CanPayload& payload) {
