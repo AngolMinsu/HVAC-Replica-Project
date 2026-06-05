@@ -7,7 +7,6 @@
 #include "../vendor/waveshare_7b/io_extension.h"
 
 static uint8_t canReady = 0;
-static uint32_t lastHealthLogMs = 0;
 
 uint8_t canDriverBegin() {
   canReady = 0;
@@ -136,16 +135,4 @@ void canDriverPollHealth() {
     canReady = 1;
   }
 
-  uint32_t now = millis();
-  if (now - lastHealthLogMs >= 1000) {
-    lastHealthLogMs = now;
-    Serial.print("CAN state:");
-    Serial.print(status.state);
-    Serial.print(" TXerr:");
-    Serial.print(status.tx_error_counter);
-    Serial.print(" RXerr:");
-    Serial.print(status.rx_error_counter);
-    Serial.print(" BusErr:");
-    Serial.println(status.bus_error_count);
-  }
 }

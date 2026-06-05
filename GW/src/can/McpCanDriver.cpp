@@ -5,7 +5,6 @@
 
 static MCP_CAN mcpController(GDS_PIN_MCP_CS);
 static uint8_t mcpReady = 0;
-static uint32_t lastMcpHealthLogMs = 0;
 
 uint8_t mcpCanDriverBegin() {
   mcpReady = 0;
@@ -97,26 +96,4 @@ uint8_t mcpCanDriverIsReady() {
 
 void mcpCanDriverPollHealth() {
   if (!GDS_MCP_ENABLED) return;
-
-  uint32_t now = millis();
-  if (now - lastMcpHealthLogMs >= 1000) {
-    lastMcpHealthLogMs = now;
-    uint8_t hasError = mcpController.checkError();
-    uint8_t errorFlag = mcpController.getError();
-    uint8_t rxErrorCount = mcpController.errorCountRX();
-    uint8_t txErrorCount = mcpController.errorCountTX();
-
-    Serial.print("MCP CAN ready:");
-    Serial.print(mcpReady ? "YES" : "NO");
-    Serial.print(" INT:");
-    Serial.print(digitalRead(GDS_PIN_MCP_INT));
-    Serial.print(" err:");
-    Serial.print(hasError);
-    Serial.print(" flag:0x");
-    Serial.print(errorFlag, HEX);
-    Serial.print(" rxErr:");
-    Serial.print(rxErrorCount);
-    Serial.print(" txErr:");
-    Serial.println(txErrorCount);
-  }
 }

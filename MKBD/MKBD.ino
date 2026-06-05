@@ -233,6 +233,9 @@ uint8_t sendCanPayload(uint16_t id, const CanPayload& payload) {
 
   canMonitorPrintFrame("TX", frame);
 
+  Serial.print("CAN READY:");
+  Serial.println(canDriverIsReady() ? "YES" : "NO");
+
   uint8_t sent = canDriverSend(frame);
   Serial.print("CAN SEND:");
   Serial.println(sent ? "OK" : "FAIL");

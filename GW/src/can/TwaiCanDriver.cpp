@@ -4,7 +4,6 @@
 #include <esp_err.h>
 
 static uint8_t twaiReady = 0;
-static uint32_t lastTwaiHealthLogMs = 0;
 
 uint8_t twaiCanDriverBegin() {
   twaiReady = 0;
@@ -122,16 +121,4 @@ void twaiCanDriverPollHealth() {
     twaiReady = 1;
   }
 
-  uint32_t now = millis();
-  if (now - lastTwaiHealthLogMs >= 1000) {
-    lastTwaiHealthLogMs = now;
-    Serial.print("TWAI state:");
-    Serial.print(status.state);
-    Serial.print(" TXerr:");
-    Serial.print(status.tx_error_counter);
-    Serial.print(" RXerr:");
-    Serial.print(status.rx_error_counter);
-    Serial.print(" BusErr:");
-    Serial.println(status.bus_error_count);
-  }
 }
