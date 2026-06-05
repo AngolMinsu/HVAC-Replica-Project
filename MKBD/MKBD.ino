@@ -106,6 +106,7 @@ void setup() {
 
 void loop() {
   mkbdSchedulerRun();
+  //printCanReadyStatus();
 }
 
 ButtonLevels readButtonLevels() {
@@ -232,7 +233,11 @@ uint8_t sendCanPayload(uint16_t id, const CanPayload& payload) {
 
   canMonitorPrintFrame("TX", frame);
 
-  return canDriverSend(frame);
+  uint8_t sent = canDriverSend(frame);
+  Serial.print("CAN SEND:");
+  Serial.println(sent ? "OK" : "FAIL");
+
+  return sent;
 }
 
 uint8_t broadcastHvacStatus(uint8_t signal) {
@@ -325,6 +330,20 @@ uint8_t broadcastIfSignalChanged(const SystemState& before, const SystemState& a
   }
 
   return broadcastHvacStatus(signal);
+}
+
+void printCanReadyStatus() {
+  static unsigned long lastCanStatusTime = 0;
+  unsigned long now = millis();
+
+  if (now - lastCanStatusTime < 1000) {
+    return;
+  }
+
+  lastCanStatusTime = now;
+
+  Serial.print("CAN STATUS:");
+  Serial.println(canDriverIsReady() ? "READY" : "FAIL");
 }
 
 #include "state/State.cpp"
