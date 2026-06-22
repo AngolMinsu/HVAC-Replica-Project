@@ -17,17 +17,10 @@ static void routeTwaiToMcp() {
     canMonitorPrintFrame("GW RX TWAI", rxFrame);
 
     CanFrame txFrame = {};
-    uint8_t routable = gatewayRouteFrame("TWAI->MCP", rxFrame, txFrame);
-    if (!routable) {
-      Serial.println("ROUTER_REJECT");
-      continue;
+    if (gatewayRouteFrame("TWAI->MCP", rxFrame, txFrame) && GDS_GW_FORWARD_ENABLED) {
+      uint8_t sent = mcpCanDriverSend(txFrame);
+      Serial.println(sent ? "GW TX MCP OK" : "GW TX MCP FAIL");
     }
-    if (!GDS_GW_FORWARD_ENABLED) {
-      Serial.println("FORWARD_DISABLED");
-      continue;
-    }
-    uint8_t sent = mcpCanDriverSend(txFrame);
-    Serial.println(sent ? "GW TX MCP OK" : "GW TX MCP FAIL");
   }
 }
 

@@ -113,14 +113,14 @@ uint8_t mcpCanDriverReceive(CanFrame& frame) {
 
   byte result = mcpController.readMsgBuf(&rxId, &len, buffer);
   if (result != CAN_OK) {
-    Serial.print("MCP RX read failed: 0x");
+    Serial.print("DROP MCP read: 0x");
     Serial.println(result, HEX);
     return 0;
   }
 
   // Validate received data
   if (len == 0 || len > GDS_CAN_DLC) {
-    Serial.print("MCP RX invalid DLC: ");
+    Serial.print("DROP MCP DLC:");
     Serial.println(len);
     return 0;
   }
