@@ -12,14 +12,14 @@ static uint32_t mcpRxCount = 0;
 static void routeTwaiToMcp() {
   CanFrame rxFrame = {};
   while (twaiCanDriverReceive(rxFrame)) {
-    Serial.print("GW RX TWAI #");
+    Serial.print("GW TWAI RX -> MCP TX RX#");
     Serial.println(++twaiRxCount);
-    canMonitorPrintFrame("GW RX TWAI", rxFrame);
+    canMonitorPrintFrame("GW TWAI RX", rxFrame);
 
     CanFrame txFrame = {};
     if (gatewayRouteFrame("TWAI->MCP", rxFrame, txFrame) && GDS_GW_FORWARD_ENABLED) {
       uint8_t sent = mcpCanDriverSend(txFrame);
-      Serial.println(sent ? "GW TX MCP OK" : "GW TX MCP FAIL");
+      Serial.println(sent ? "GW TWAI RX -> MCP TX OK" : "GW TWAI RX -> MCP TX FAIL");
     }
   }
 }
@@ -27,14 +27,14 @@ static void routeTwaiToMcp() {
 static void routeMcpToTwai() {
   CanFrame rxFrame = {};
   while (mcpCanDriverReceive(rxFrame)) {
-    Serial.print("GW RX MCP #");
+    Serial.print("GW MCP RX -> TWAI TX RX#");
     Serial.println(++mcpRxCount);
-    canMonitorPrintFrame("GW RX MCP", rxFrame);
+    canMonitorPrintFrame("GW MCP RX", rxFrame);
 
     CanFrame txFrame = {};
     if (gatewayRouteFrame("MCP->TWAI", rxFrame, txFrame) && GDS_GW_FORWARD_ENABLED) {
       uint8_t sent = twaiCanDriverSend(txFrame);
-      Serial.println(sent ? "GW TX TWAI OK" : "GW TX TWAI FAIL");
+      Serial.println(sent ? "GW MCP RX -> TWAI TX OK" : "GW MCP RX -> TWAI TX FAIL");
     }
   }
 }

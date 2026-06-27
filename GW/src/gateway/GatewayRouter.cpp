@@ -20,14 +20,18 @@ static uint8_t isRoutableId(uint16_t id) {
 
 uint8_t gatewayRouteFrame(const char* sourceName, const CanFrame& rxFrame, CanFrame& txFrame) {
   if (!isRoutableId(rxFrame.id)) {
-    Serial.print("DROP ID:0x");
+    Serial.print("GW ROUTE ");
+    Serial.print(sourceName);
+    Serial.print(" DROP ID:0x");
     Serial.println(rxFrame.id, HEX);
     dropUnknownIdCount++;
     return 0;
   }
 
   if (rxFrame.dlc != GDS_CAN_DLC) {
-    Serial.print("DROP DLC:");
+    Serial.print("GW ROUTE ");
+    Serial.print(sourceName);
+    Serial.print(" DROP DLC:");
     Serial.println(rxFrame.dlc);
     dropInvalidDlcCount++;
     return 0;
@@ -37,13 +41,17 @@ uint8_t gatewayRouteFrame(const char* sourceName, const CanFrame& rxFrame, CanFr
   canMonitorPrintPayloadSummary(payload);
 
   if (!canValidateChecksum(payload)) {
-    Serial.println("DROP CHECKSUM");
+    Serial.print("GW ROUTE ");
+    Serial.print(sourceName);
+    Serial.println(" DROP CHECKSUM");
     dropChecksumCount++;
     return 0;
   }
 
   if (!canIsKnownSignal(payload.signal)) {
-    Serial.print("DROP SIGNAL:0x");
+    Serial.print("GW ROUTE ");
+    Serial.print(sourceName);
+    Serial.print(" DROP SIGNAL:0x");
     Serial.println(payload.signal, HEX);
     dropUnknownSignalCount++;
     return 0;
@@ -51,6 +59,9 @@ uint8_t gatewayRouteFrame(const char* sourceName, const CanFrame& rxFrame, CanFr
 
   txFrame = rxFrame;
   routeCount++;
+  Serial.print("GW ROUTE ");
+  Serial.print(sourceName);
+  Serial.println(" PASS");
   return 1;
 }
 
