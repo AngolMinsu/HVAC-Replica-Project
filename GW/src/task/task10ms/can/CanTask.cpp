@@ -1,41 +1,49 @@
 #include "CanTask.h"
 
 #include "../../../../GDS.h"
-#include "../../../can/CanMonitor.h"
 #include "../../../can/McpCanDriver.h"
 #include "../../../can/TwaiCanDriver.h"
 #include "../../../gateway/GatewayRouter.h"
 
-static uint32_t twaiRxCount = 0;
-static uint32_t mcpRxCount = 0;
+static uint32_t huToMkbdCount = 0;
+static uint32_t mkbdToHuCount = 0;
 
-static void routeTwaiToMcp() {
+static void printRouteResult(const char* direction, uint32_t count, const CanFrame& frame, uint8_t sent) {
+  Serial.print("GW ");
+  Serial.print(direction);
+  Serial.print(" #");
+  Serial.print(count);
+  Serial.print(" ID:0x");
+  Serial.print(frame.id, HEX);
+  Serial.print(" DLC:");
+  Serial.print(frame.dlc);
+  Serial.print(" ");
+  Serial.println(sent ? "OK" : "FAIL");
+}
+
+static void routeHuToMkbd() {
   CanFrame rxFrame = {};
   while (twaiCanDriverReceive(rxFrame)) {
-    Serial.print("GW TWAI RX -> MCP TX RX#");
-    Serial.println(++twaiRxCount);
-    canMonitorPrintFrame("GW TWAI RX", rxFrame);
-
     CanFrame txFrame = {};
-    if (gatewayRouteFrame("TWAI->MCP", rxFrame, txFrame) && GDS_GW_FORWARD_ENABLED) {
-      uint8_t sent = mcpCanDriverSend(txFrame);
-      Serial.println(sent ? "GW TWAI RX -> MCP TX OK" : "GW TWAI RX -> MCP TX FAIL");
+    if (!gatewayRouteFrame("HU->MKBD", rxFrame, txFrame)) {
+      continue;
     }
+
+    uint8_t sent = GDS_GW_FORWARD_ENABLED ? mcpCanDriverSend(txFrame) : 0;
+    printRouteResult("HU->MKBD", ++huToMkbdCount, rxFrame, sent);
   }
 }
 
-static void routeMcpToTwai() {
+static void routeMkbdToHu() {
   CanFrame rxFrame = {};
   while (mcpCanDriverReceive(rxFrame)) {
-    Serial.print("GW MCP RX -> TWAI TX RX#");
-    Serial.println(++mcpRxCount);
-    canMonitorPrintFrame("GW MCP RX", rxFrame);
-
     CanFrame txFrame = {};
-    if (gatewayRouteFrame("MCP->TWAI", rxFrame, txFrame) && GDS_GW_FORWARD_ENABLED) {
-      uint8_t sent = twaiCanDriverSend(txFrame);
-      Serial.println(sent ? "GW MCP RX -> TWAI TX OK" : "GW MCP RX -> TWAI TX FAIL");
+    if (!gatewayRouteFrame("MKBD->HU", rxFrame, txFrame)) {
+      continue;
     }
+
+    uint8_t sent = GDS_GW_FORWARD_ENABLED ? twaiCanDriverSend(txFrame) : 0;
+    printRouteResult("MKBD->HU", ++mkbdToHuCount, rxFrame, sent);
   }
 }
 
@@ -46,10 +54,9 @@ void gatewayCanTask(void* parameter) {
   for (;;) {
     twaiCanDriverPollHealth();
     mcpCanDriverPollHealth();
-    gatewayRouterPrintStats();
 
-    routeTwaiToMcp();
-    routeMcpToTwai();
+    routeHuToMkbd();
+    routeMkbdToHu();
 
     vTaskDelayUntil(&lastWake, pdMS_TO_TICKS(GDS_TASK_CAN_MS));
   }

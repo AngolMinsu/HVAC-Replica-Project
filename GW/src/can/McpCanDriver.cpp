@@ -6,6 +6,37 @@
 static MCP_CAN mcpController(GDS_PIN_MCP_CS);
 static uint8_t mcpReady = 0;
 
+static const char* mcpResultToText(byte result) {
+  switch (result) {
+    case CAN_OK: return "CAN_OK";
+    case CAN_FAILINIT: return "CAN_FAILINIT";
+    case CAN_FAILTX: return "CAN_FAILTX";
+    case CAN_MSGAVAIL: return "CAN_MSGAVAIL";
+    case CAN_NOMSG: return "CAN_NOMSG";
+    case CAN_CTRLERROR: return "CAN_CTRLERROR";
+    case CAN_GETTXBFTIMEOUT: return "CAN_GETTXBFTIMEOUT";
+    case CAN_SENDMSGTIMEOUT: return "CAN_SENDMSGTIMEOUT";
+    case CAN_FAIL: return "CAN_FAIL";
+    default: return "UNKNOWN";
+  }
+}
+
+static void printMcpErrorDetail(const char* label, byte result) {
+  Serial.print(label);
+  Serial.print(" result:");
+  Serial.print(result);
+  Serial.print("(");
+  Serial.print(mcpResultToText(result));
+  Serial.print(") err:0x");
+  Serial.print(mcpController.getError(), HEX);
+  Serial.print(" rxErr:");
+  Serial.print(mcpController.errorCountRX());
+  Serial.print(" txErr:");
+  Serial.print(mcpController.errorCountTX());
+  Serial.print(" INT:");
+  Serial.println(digitalRead(GDS_PIN_MCP_INT));
+}
+
 uint8_t mcpCanDriverBegin() {
   mcpReady = 0;
   if (!GDS_MCP_ENABLED) {
@@ -13,30 +44,29 @@ uint8_t mcpCanDriverBegin() {
     return mcpReady;
   }
 
-  // Setup interrupt pin
   pinMode(GDS_PIN_MCP_INT, INPUT_PULLUP);
   pinMode(GDS_PIN_MCP_CS, OUTPUT);
   digitalWrite(GDS_PIN_MCP_CS, HIGH);
 
   Serial.println("MCP2515 SPI init...");
-  
-  // Initialize SPI with lower frequency for stability
   SPI.begin(GDS_PIN_MCP_SCK, GDS_PIN_MCP_MISO, GDS_PIN_MCP_MOSI, GDS_PIN_MCP_CS);
-  SPI.setFrequency(1000000);  // 1MHz for MCP2515 stability
-  
+  SPI.setFrequency(1000000);
   delay(100);
 
   byte result = mcpController.begin(MCP_ANY, CAN_500KBPS, MCP_8MHZ);
   if (result != CAN_OK) {
-    Serial.print("MCP2515 begin failed: 0x");
-    Serial.println(result, HEX);
+    printMcpErrorDetail("MCP2515 begin failed", result);
     return 0;
   }
 
-  // Set lower SPI frequency after initialization
-  SPI.setFrequency(2000000);  // 2MHz for faster TX/RX
-  
-  mcpController.setMode(MCP_NORMAL);
+  SPI.setFrequency(2000000);
+
+  result = mcpController.setMode(MCP_NORMAL);
+  if (result != CAN_OK) {
+    printMcpErrorDetail("MCP2515 normal mode failed", result);
+    return 0;
+  }
+
   delay(50);
   mcpReady = 1;
 
@@ -50,7 +80,7 @@ uint8_t mcpCanDriverBegin() {
   Serial.print(GDS_PIN_MCP_MOSI);
   Serial.print(" MISO:");
   Serial.print(GDS_PIN_MCP_MISO);
-  Serial.print(" SPI:5MHz");
+  Serial.print(" SPI:2MHz");
   Serial.println();
   return mcpReady;
 }
@@ -60,7 +90,7 @@ uint8_t mcpCanDriverSend(const CanFrame& frame) {
     Serial.println("MCP TX: driver not ready");
     return 0;
   }
-  
+
   if (frame.dlc == 0 || frame.dlc > GDS_CAN_DLC) {
     Serial.print("MCP TX: invalid DLC:");
     Serial.println(frame.dlc);
@@ -69,31 +99,35 @@ uint8_t mcpCanDriverSend(const CanFrame& frame) {
 
   byte result = mcpController.sendMsgBuf(
       frame.id & GDS_CAN_STANDARD_ID_MASK,
-      0,  // standard ID
+      0,
       frame.dlc,
       (byte*)frame.data);
 
-  if (result != CAN_OK) {
-    // 0x7 = all TX buffers full - try to abort and retry once
-    if (result == 0x7) {
-      mcpController.abortTX();
-      delayMicroseconds(100);
-      
-      result = mcpController.sendMsgBuf(
-          frame.id & GDS_CAN_STANDARD_ID_MASK,
-          0,
-          frame.dlc,
-          (byte*)frame.data);
-      
-      if (result != CAN_OK) {
-        return 0;
-      }
-    } else {
-      return 0;
-    }
+  if (result == CAN_OK) {
+    return 1;
   }
-  
-  return 1;
+
+  printMcpErrorDetail("MCP TX first failed", result);
+
+  if (result == CAN_GETTXBFTIMEOUT || result == CAN_SENDMSGTIMEOUT) {
+    mcpController.abortTX();
+    delayMicroseconds(100);
+
+    result = mcpController.sendMsgBuf(
+        frame.id & GDS_CAN_STANDARD_ID_MASK,
+        0,
+        frame.dlc,
+        (byte*)frame.data);
+
+    if (result == CAN_OK) {
+      Serial.println("MCP TX retry OK");
+      return 1;
+    }
+
+    printMcpErrorDetail("MCP TX retry failed", result);
+  }
+
+  return 0;
 }
 
 uint8_t mcpCanDriverReceive(CanFrame& frame) {
@@ -101,7 +135,6 @@ uint8_t mcpCanDriverReceive(CanFrame& frame) {
     return 0;
   }
 
-  // Check if data available
   uint8_t available = mcpController.checkReceive();
   if (available != CAN_MSGAVAIL) {
     return 0;
@@ -113,14 +146,12 @@ uint8_t mcpCanDriverReceive(CanFrame& frame) {
 
   byte result = mcpController.readMsgBuf(&rxId, &len, buffer);
   if (result != CAN_OK) {
-    Serial.print("DROP MCP read: 0x");
-    Serial.println(result, HEX);
+    printMcpErrorDetail("MCP RX read failed", result);
     return 0;
   }
 
-  // Validate received data
   if (len == 0 || len > GDS_CAN_DLC) {
-    Serial.print("DROP MCP DLC:");
+    Serial.print("MCP RX DROP DLC:");
     Serial.println(len);
     return 0;
   }
@@ -138,5 +169,4 @@ uint8_t mcpCanDriverIsReady() {
 }
 
 void mcpCanDriverPollHealth() {
-  if (!GDS_MCP_ENABLED || !mcpReady) return;
 }

@@ -2,7 +2,6 @@
 
 #include <Arduino.h>
 #include "../../GDS.h"
-#include "../can/CanMonitor.h"
 #include "../can/CanProtocol.h"
 
 static uint32_t dropUnknownIdCount = 0;
@@ -38,9 +37,7 @@ uint8_t gatewayRouteFrame(const char* sourceName, const CanFrame& rxFrame, CanFr
   }
 
   CanPayload payload = canPayloadFromBytes(rxFrame.data);
-  canMonitorPrintPayloadSummary(payload);
-
-  if (!canValidateChecksum(payload)) {
+if (!canValidateChecksum(payload)) {
     Serial.print("GW ROUTE ");
     Serial.print(sourceName);
     Serial.println(" DROP CHECKSUM");
@@ -59,42 +56,8 @@ uint8_t gatewayRouteFrame(const char* sourceName, const CanFrame& rxFrame, CanFr
 
   txFrame = rxFrame;
   routeCount++;
-  Serial.print("GW ROUTE ");
-  Serial.print(sourceName);
-  Serial.println(" PASS");
   return 1;
 }
 
 void gatewayRouterPrintStats() {
-  uint32_t now = millis();
-  if (now - lastStatsLogMs < 1000) {
-    return;
-  }
-  lastStatsLogMs = now;
-
-  if (routeCount == 0 &&
-      dropUnknownIdCount == 0 &&
-      dropInvalidDlcCount == 0 &&
-      dropChecksumCount == 0 &&
-      dropUnknownSignalCount == 0) {
-    return;
-  }
-
-  Serial.print("GW route:");
-  Serial.print(routeCount);
-  Serial.print(" drop[id:");
-  Serial.print(dropUnknownIdCount);
-  Serial.print(" dlc:");
-  Serial.print(dropInvalidDlcCount);
-  Serial.print(" checksum:");
-  Serial.print(dropChecksumCount);
-  Serial.print(" signal:");
-  Serial.print(dropUnknownSignalCount);
-  Serial.println("]");
-
-  routeCount = 0;
-  dropUnknownIdCount = 0;
-  dropInvalidDlcCount = 0;
-  dropChecksumCount = 0;
-  dropUnknownSignalCount = 0;
 }
