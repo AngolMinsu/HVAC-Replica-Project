@@ -1,0 +1,108 @@
+#ifndef GDS_H
+#define GDS_H
+
+#include <Arduino.h>
+
+// ESP32-S3 MKBD32 hardware pins
+const uint8_t GDS_PIN_DRIVER_ENC_A = 4;
+const uint8_t GDS_PIN_DRIVER_ENC_B = 5;
+const uint8_t GDS_PIN_DRIVER_ENC_SW = 6;
+
+const uint8_t GDS_PIN_PASSENGER_ENC_A = 40;
+const uint8_t GDS_PIN_PASSENGER_ENC_B = 41;
+const uint8_t GDS_PIN_PASSENGER_ENC_SW = 42;
+
+const uint8_t GDS_PIN_BTN_SCREEN = 10;
+const uint8_t GDS_PIN_BTN_FAN_UP = 11;
+const uint8_t GDS_PIN_BTN_FAN_DOWN = 12;
+const uint8_t GDS_PIN_BTN_WIND_MEDIA = 13;
+
+const uint8_t GDS_PIN_OLED_SDA = 15;
+const uint8_t GDS_PIN_OLED_SCL = 16;
+
+const uint8_t GDS_PIN_TWAI_TX = 35;
+const uint8_t GDS_PIN_TWAI_RX = 36;
+
+const uint8_t GDS_PIN_FAN_MOTOR = 21;
+
+// Legacy compatibility. MKBD32 uses ESP32 TWAI, not MCP2515 SPI.
+const uint8_t GDS_PIN_CAN_CS = 255;
+const int8_t GDS_PIN_CAN_INT = -1;
+
+// Timing
+const unsigned long GDS_DEBOUNCE_DELAY_MS = 60;
+const unsigned long GDS_ENCODER_DEBOUNCE_DELAY_MS = 5;
+const unsigned long GDS_DISPLAY_INTERVAL_MS = 100;
+
+// HVAC / INFO state ranges
+const uint8_t GDS_FAN_SPEED_MIN = 0;
+const uint8_t GDS_FAN_SPEED_MAX = 8;
+const uint8_t GDS_TEMP_MIN = 18;
+const uint8_t GDS_TEMP_DEFAULT = 24;
+const uint8_t GDS_TEMP_MAX = 30;
+const uint8_t GDS_VOLUME_MIN = 0;
+const uint8_t GDS_VOLUME_DEFAULT = 10;
+const uint8_t GDS_VOLUME_MAX = 30;
+const uint8_t GDS_MEDIA_INDEX_MIN = 0;
+const uint8_t GDS_MEDIA_INDEX_DEFAULT = 10;
+const uint8_t GDS_MEDIA_INDEX_MAX = 30;
+
+// Fan PWM policy
+const int GDS_FAN_PWM_OFF = 0;
+const int GDS_FAN_PWM_MIN = 90;
+const int GDS_FAN_PWM_MAX = 255;
+
+// CAN frame configuration
+const uint16_t GDS_CAN_ID_CONTROL_REQUEST = 0x100;
+const uint16_t GDS_CAN_ID_CONTROL_RESPONSE = 0x101;
+const uint16_t GDS_CAN_ID_HVAC_STATUS = 0x300;
+const uint16_t GDS_CAN_STANDARD_ID_MASK = 0x7FF;
+const uint8_t GDS_CAN_DLC = 8;
+
+// CAN service values
+const uint8_t GDS_CAN_SERVICE_WRITE_REQUEST = 0x20;
+const uint8_t GDS_CAN_SERVICE_WRITE_RESPONSE = 0x22;
+const uint8_t GDS_CAN_SERVICE_READ_REQUEST = 0x30;
+const uint8_t GDS_CAN_SERVICE_READ_RESPONSE = 0x32;
+
+// CAN result values
+const uint8_t GDS_CAN_RESULT_NORMAL = 0x00;
+const uint8_t GDS_CAN_RESULT_SUCCESS = 0x02;
+const uint8_t GDS_CAN_RESULT_FAIL = 0x0F;
+
+// CAN signal values
+const uint8_t GDS_CAN_SIGNAL_POWER = 0x01;
+const uint8_t GDS_CAN_SIGNAL_FAN_SPEED = 0x02;
+const uint8_t GDS_CAN_SIGNAL_TEMPERATURE = 0x03;
+const uint8_t GDS_CAN_SIGNAL_MODE = 0x04;
+const uint8_t GDS_CAN_SIGNAL_AC = 0x05;
+const uint8_t GDS_CAN_SIGNAL_AUTO = 0x06;
+const uint8_t GDS_CAN_SIGNAL_INTAKE = 0x07;
+const uint8_t GDS_CAN_SIGNAL_SCREEN_MODE = 0x08;
+const uint8_t GDS_CAN_SIGNAL_MEDIA = 0x09;
+const uint8_t GDS_CAN_SIGNAL_VOLUME = 0x0A;
+const uint8_t GDS_CAN_SIGNAL_MAP = 0x0B;
+const uint8_t GDS_CAN_SIGNAL_PASSENGER_TEMPERATURE = 0x0C;
+const uint8_t GDS_CAN_SIGNAL_MUTE = 0x0D;
+const uint8_t GDS_CAN_SIGNAL_HOME = 0x0E;
+const uint8_t GDS_CAN_SIGNAL_MEDIA_MODE = 0x0F;
+const uint8_t GDS_CAN_SIGNAL_MEDIA_INDEX = 0x10;
+const uint8_t GDS_CAN_SIGNAL_DRIVER_ENCODER_SW = 0x11;
+const uint8_t GDS_CAN_SIGNAL_PASSENGER_ENCODER_SW = 0x12;
+const uint8_t GDS_CAN_SIGNAL_HU_FOCUS_PREV = 0x13;
+const uint8_t GDS_CAN_SIGNAL_HU_FOCUS_NEXT = 0x14;
+const uint8_t GDS_CAN_SIGNAL_HU_OPEN_HOME = 0x15;
+const uint8_t GDS_CAN_SIGNAL_HU_OPEN_MAP = 0x16;
+const uint8_t GDS_CAN_SIGNAL_HU_OPEN_MEDIA = 0x17;
+
+// CAN error values for payload Option byte on failure responses
+const uint8_t GDS_CAN_ERROR_NONE = 0x00;
+const uint8_t GDS_CAN_ERROR_CHECKSUM = 0x01;
+const uint8_t GDS_CAN_ERROR_UNSUPPORTED_SERVICE = 0x02;
+const uint8_t GDS_CAN_ERROR_UNSUPPORTED_SIGNAL = 0x03;
+const uint8_t GDS_CAN_ERROR_VALUE_OUT_OF_RANGE = 0x04;
+const uint8_t GDS_CAN_ERROR_INVALID_DLC = 0x05;
+const uint8_t GDS_CAN_ERROR_COUNTER = 0x06;
+const uint8_t GDS_CAN_ERROR_DRIVER = 0x07;
+
+#endif
