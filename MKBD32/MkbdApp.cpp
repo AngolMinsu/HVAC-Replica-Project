@@ -65,11 +65,11 @@ static void setupDisplay() {
   u8g2.begin();
   u8g2.setBusClock(100000);
 }
-
 static uint8_t setupCan() {
   uint8_t ready = canDriverBegin(CAN_PORT);
   Serial.print("CAN:");
   Serial.println(ready ? "READY" : "FAIL");
+  canDriverPrintStatus("BEGIN");
   return ready;
 }
 
@@ -154,6 +154,9 @@ uint8_t sendCanPayload(uint16_t id, const CanPayload& payload) {
   uint8_t sent = canDriverSend(frame);
   Serial.print("CAN SEND:");
   Serial.println(sent ? "OK" : "FAIL");
+  if (!sent) {
+    canDriverPrintStatus("SEND FAIL");
+  }
 
   return sent;
 }
