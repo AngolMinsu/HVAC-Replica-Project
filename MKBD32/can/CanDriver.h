@@ -10,10 +10,9 @@ struct CanFrame {
   uint8_t data[GDS_CAN_DLC];
 };
 
-uint8_t canDriverBegin(uint8_t csPin);
+uint8_t canDriverBegin();
 uint8_t canDriverSend(const CanFrame& frame);
 uint8_t canDriverReceive(CanFrame& frame);
-uint8_t canDriverIsReady();
 void canDriverPrintStatus(const char* label);
 
 #endif

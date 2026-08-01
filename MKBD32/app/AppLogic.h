@@ -18,6 +18,5 @@ uint8_t handleButtonAction(SystemState& state, uint8_t button);
 uint8_t handleEncoderAction(SystemState& state, uint8_t encoderEvent);
 int calculateFanPwm(const SystemState& state);
 uint8_t calculateStatusLed(const SystemState& state);
-uint8_t shouldRefreshDisplay(unsigned long now, unsigned long lastDisplayTime, unsigned long interval);
 
 #endif

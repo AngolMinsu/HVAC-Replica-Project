@@ -76,8 +76,7 @@ static twai_message_t makeTwaiMessage(const CanFrame& frame) {
   return message;
 }
 
-uint8_t canDriverBegin(uint8_t unusedPin) {
-  (void)unusedPin;
+uint8_t canDriverBegin() {
   canReady = 0;
   lastCanError = ESP_OK;
 
@@ -137,8 +136,4 @@ uint8_t canDriverReceive(CanFrame& frame) {
   }
 
   return 1;
-}
-
-uint8_t canDriverIsReady() {
-  return canReady;
 }

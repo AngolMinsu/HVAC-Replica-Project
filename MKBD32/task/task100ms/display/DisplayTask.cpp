@@ -4,5 +4,4 @@
 
 void mkbdTask100msDisplayRun() {
   drawCurrentScreen();
-  lastDisplayTime = millis();
 }

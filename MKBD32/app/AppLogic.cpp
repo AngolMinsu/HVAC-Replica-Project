@@ -71,7 +71,3 @@ int calculateFanPwm(const SystemState& state) {
 uint8_t calculateStatusLed(const SystemState& state) {
   return calculateFanPwm(state) == 0 ? LOW : HIGH;
 }
-
-uint8_t shouldRefreshDisplay(unsigned long now, unsigned long lastDisplayTime, unsigned long interval) {
-  return now - lastDisplayTime > interval;
-}

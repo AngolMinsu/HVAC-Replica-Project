@@ -5,8 +5,6 @@
 #include "../state/State.h"
 
 extern SystemState state;
-extern unsigned long lastDisplayTime;
-
 uint8_t readButtonEvent();
 uint8_t readEncoderEvent();
 int updateFanMotor();

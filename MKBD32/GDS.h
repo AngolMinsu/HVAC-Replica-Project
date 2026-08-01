@@ -25,14 +25,9 @@ const uint8_t GDS_PIN_TWAI_RX = 36;
 
 const uint8_t GDS_PIN_FAN_MOTOR = 21;
 
-// Legacy compatibility. MKBD32 uses ESP32 TWAI, not MCP2515 SPI.
-const uint8_t GDS_PIN_CAN_CS = 255;
-const int8_t GDS_PIN_CAN_INT = -1;
-
 // Timing
 const unsigned long GDS_DEBOUNCE_DELAY_MS = 60;
 const unsigned long GDS_ENCODER_DEBOUNCE_DELAY_MS = 5;
-const unsigned long GDS_DISPLAY_INTERVAL_MS = 100;
 
 // HVAC / INFO state ranges
 const uint8_t GDS_FAN_SPEED_MIN = 0;
