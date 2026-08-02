@@ -16,12 +16,32 @@ void headUnitCanRxTask(void* parameter) {
     canDriverPollHealth();
 
     CanFrame frame;
-    if (canDriverReceive(frame)) {
-      canMonitorPrintFrame("RX", frame);
-      if (frame.id == GDS_CAN_ID_HVAC_STATUS && frame.dlc == GDS_CAN_DLC) {
-        CanPayload payload = canPayloadFromBytes(frame.data);
-        canMonitorPrintPayloadSummary(payload);
+    while (canDriverReceive(frame)) {
+      canMonitorPrintFrame("HU RX", frame);
+
+      if (frame.dlc != GDS_CAN_DLC) {
+        Serial.println("HU RX DROP:DLC");
+        continue;
+      }
+
+      CanPayload payload = canPayloadFromBytes(frame.data);
+      canMonitorPrintPayloadSummary(payload);
+
+      if (!canValidateChecksum(payload)) {
+        Serial.println("HU RX DROP:CHECKSUM");
+        continue;
+      }
+
+      if (frame.id == GDS_CAN_ID_HVAC_STATUS) {
+        Serial.println("HU RX APPLY:HVAC_STATUS");
         headUnitHmiApplyCanPayload(payload);
+      } else if (frame.id == GDS_CAN_ID_CONTROL_RESPONSE) {
+        Serial.println("HU RX ACK:CONTROL_RESPONSE");
+      } else if (frame.id == GDS_CAN_ID_CONTROL_REQUEST) {
+        Serial.println("HU RX OBSERVE:CONTROL_REQUEST");
+      } else {
+        Serial.print("HU RX IGNORE ID:0x");
+        Serial.println(frame.id, HEX);
       }
     }
 

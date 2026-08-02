@@ -4,6 +4,7 @@
 
 #include "../../GDS.h"
 #include "../can/CanDriver.h"
+#include "../can/CanMonitor.h"
 #include "../driver/DisplayDriver.h"
 
 extern "C" {
@@ -110,14 +111,14 @@ static uint8_t sendHuControlRequest(uint8_t signal, uint8_t value) {
   frame.dlc = GDS_CAN_DLC;
   canPayloadToBytes(payload, frame.data);
 
+  canMonitorPrintFrame("HU TX", frame);
+  canMonitorPrintPayloadSummary(payload);
+
   uint8_t sent = canDriverSend(frame);
-  Serial.print("HU TX ID:0x");
-  Serial.print(frame.id, HEX);
-  Serial.print(" Signal:0x");
-  Serial.print(signal, HEX);
-  Serial.print(" Value:");
-  Serial.print(value);
-  Serial.println(sent ? " OK" : " FAIL");
+  Serial.println(sent ? "HU TX RESULT:OK" : "HU TX RESULT:FAIL");
+  if (!sent) {
+    canDriverPrintStatus("HU_TX_FAIL");
+  }
   return sent;
 }
 

@@ -50,6 +50,7 @@ uint8_t canDriverBegin() {
   Serial.print(GDS_PIN_CAN_TX);
   Serial.print(" RX:");
   Serial.println(GDS_PIN_CAN_RX);
+  canDriverPrintStatus("BEGIN");
   return canReady;
 }
 
@@ -72,6 +73,7 @@ uint8_t canDriverSend(const CanFrame& frame) {
   if (result != ESP_OK) {
     Serial.print("CAN transmit failed:");
     Serial.println(esp_err_to_name(result));
+    canDriverPrintStatus("TX_FAIL");
     return 0;
   }
 
@@ -101,6 +103,42 @@ uint8_t canDriverReceive(CanFrame& frame) {
   return 1;
 }
 
+
+void canDriverPrintStatus(const char* label) {
+  if (!GDS_CAN_ENABLED) {
+    return;
+  }
+
+  twai_status_info_t status;
+  esp_err_t result = twai_get_status_info(&status);
+  Serial.print("[TWAI] ");
+  Serial.print(label != nullptr ? label : "STATUS");
+  Serial.print(" result:");
+  Serial.print(esp_err_to_name(result));
+  if (result != ESP_OK) {
+    Serial.println();
+    return;
+  }
+
+  Serial.print(" state:");
+  Serial.print((int)status.state);
+  Serial.print(" txErr:");
+  Serial.print(status.tx_error_counter);
+  Serial.print(" rxErr:");
+  Serial.print(status.rx_error_counter);
+  Serial.print(" txQ:");
+  Serial.print(status.msgs_to_tx);
+  Serial.print(" rxQ:");
+  Serial.print(status.msgs_to_rx);
+  Serial.print(" txFail:");
+  Serial.print(status.tx_failed_count);
+  Serial.print(" rxMiss:");
+  Serial.print(status.rx_missed_count);
+  Serial.print(" busErr:");
+  Serial.print(status.bus_error_count);
+  Serial.print(" arbLost:");
+  Serial.println(status.arb_lost_count);
+}
 uint8_t canDriverIsReady() {
   return canReady;
 }

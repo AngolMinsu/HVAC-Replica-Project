@@ -16,5 +16,6 @@ uint8_t canDriverSend(const CanFrame& frame);
 uint8_t canDriverReceive(CanFrame& frame);
 uint8_t canDriverIsReady();
 void canDriverPollHealth();
+void canDriverPrintStatus(const char* label);
 
 #endif
