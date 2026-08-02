@@ -26,5 +26,5 @@ ESP32-S3 기반 차량 MKBD 입력 노드.
 ## 현재 작업
 
 - 엔코더 회전 입력 하드웨어 안정화
-- `TWAI_MODE_NO_ACK` 벤치 설정을 3노드 통합 조건에 맞게 검토
+- 3노드 통합 운용을 위해 `TWAI_MODE_NORMAL` 적용 및 실제 Bus ACK 검증
 - Gateway ACK와 반대 노드 Response 처리 연결
