@@ -1,6 +1,7 @@
 #include "WifiManager.h"
 
 #include <Arduino.h>
+#include <Preferences.h>
 #include <WiFi.h>
 
 #include <freertos/FreeRTOS.h>
@@ -34,6 +35,12 @@ uint32_t networkRevision = 1;
 uint32_t connectStartedMs = 0;
 uint32_t lastConnectionPollMs = 0;
 char connectedSsid[33] = {};
+char savedSsid[33] = {};
+char savedPassword[64] = {};
+char pendingSsid[33] = {};
+char pendingPassword[64] = {};
+Preferences wifiPreferences;
+bool preferencesReady = false;
 
 void copyText(char* destination, size_t destinationSize, const char* source) {
   if (destination == nullptr || destinationSize == 0) return;
@@ -55,6 +62,36 @@ void clearNetworks() {
 
 bool queueCommand(const WifiCommand& command) {
   return commandQueue != nullptr && xQueueSend(commandQueue, &command, 0) == pdTRUE;
+}
+
+void startScan();
+
+void startConnection(const char* ssid, const char* password) {
+  if (ssid == nullptr || ssid[0] == '\0') {
+    setState(HEAD_UNIT_WIFI_IDLE);
+    startScan();
+    return;
+  }
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password != nullptr && password[0] != '\0' ? password : nullptr);
+  copyText(pendingSsid, sizeof(pendingSsid), ssid);
+  copyText(pendingPassword, sizeof(pendingPassword), password);
+  copyText(connectedSsid, sizeof(connectedSsid), ssid);
+  connectStartedMs = millis();
+  setState(HEAD_UNIT_WIFI_CONNECTING);
+}
+
+void saveConnectedCredentials() {
+  if (pendingSsid[0] == '\0') return;
+  copyText(savedSsid, sizeof(savedSsid), pendingSsid);
+  copyText(savedPassword, sizeof(savedPassword), pendingPassword);
+  if (preferencesReady) {
+    wifiPreferences.putBool("enabled", true);
+    wifiPreferences.putString("ssid", savedSsid);
+    wifiPreferences.putString("password", savedPassword);
+  }
+  pendingSsid[0] = '\0';
+  pendingPassword[0] = '\0';
 }
 
 void startScan() {
@@ -121,15 +158,23 @@ void collectScanResults(int16_t resultCount) {
 void processCommand(const WifiCommand& command) {
   switch (command.type) {
     case WIFI_COMMAND_ENABLE:
+      if (preferencesReady) wifiPreferences.putBool("enabled", true);
       WiFi.mode(WIFI_STA);
-      setState(HEAD_UNIT_WIFI_IDLE);
-      startScan();
+      if (savedSsid[0] != '\0') {
+        startConnection(savedSsid, savedPassword);
+      } else {
+        setState(HEAD_UNIT_WIFI_IDLE);
+        startScan();
+      }
       break;
 
     case WIFI_COMMAND_DISABLE:
+      if (preferencesReady) wifiPreferences.putBool("enabled", false);
       WiFi.disconnect(true, false);
       WiFi.mode(WIFI_OFF);
       connectedSsid[0] = '\0';
+      pendingSsid[0] = '\0';
+      pendingPassword[0] = '\0';
       clearNetworks();
       setState(HEAD_UNIT_WIFI_OFF);
       break;
@@ -143,11 +188,7 @@ void processCommand(const WifiCommand& command) {
         setState(HEAD_UNIT_WIFI_FAILED);
         break;
       }
-      WiFi.mode(WIFI_STA);
-      WiFi.begin(command.ssid, command.password[0] == '\0' ? nullptr : command.password);
-      copyText(connectedSsid, sizeof(connectedSsid), command.ssid);
-      connectStartedMs = millis();
-      setState(HEAD_UNIT_WIFI_CONNECTING);
+      startConnection(command.ssid, command.password);
       break;
 
     case WIFI_COMMAND_DISCONNECT:
@@ -182,6 +223,7 @@ void updateConnection() {
     if (state != HEAD_UNIT_WIFI_CONNECTED) {
       String currentSsid = WiFi.SSID();
       copyText(connectedSsid, sizeof(connectedSsid), currentSsid.c_str());
+      saveConnectedCredentials();
     }
     setState(HEAD_UNIT_WIFI_CONNECTED);
     return;
@@ -208,7 +250,24 @@ void wifiManagerBegin() {
   }
   WiFi.persistent(false);
   WiFi.setAutoReconnect(true);
-  WiFi.mode(WIFI_OFF);
+  preferencesReady = wifiPreferences.begin("hu7-wifi", false);
+  const bool enabled = preferencesReady && wifiPreferences.getBool("enabled", false);
+  if (preferencesReady) {
+    wifiPreferences.getString("ssid", savedSsid, sizeof(savedSsid));
+    wifiPreferences.getString("password", savedPassword, sizeof(savedPassword));
+  }
+
+  if (enabled) {
+    WiFi.mode(WIFI_STA);
+    if (savedSsid[0] != '\0') {
+      startConnection(savedSsid, savedPassword);
+    } else {
+      setState(HEAD_UNIT_WIFI_IDLE);
+      startScan();
+    }
+  } else {
+    WiFi.mode(WIFI_OFF);
+  }
 }
 
 void wifiManagerTick() {
