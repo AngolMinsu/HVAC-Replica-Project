@@ -9,6 +9,7 @@
 #include "../task/task10ms/input/InputTask.h"
 #include "../task/task20ms/ui/UiTask.h"
 #include "HeadUnitHmi.h"
+#include "WifiManager.h"
 
 void headUnitAppBegin() {
   Serial.begin(GDS_SERIAL_BAUD);
@@ -23,6 +24,7 @@ void headUnitAppBegin() {
     }
   }
 
+  wifiManagerBegin();
   headUnitHmiBegin();
   canDriverBegin();
 

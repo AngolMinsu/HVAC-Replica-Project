@@ -6,6 +6,7 @@
 #include "../can/CanDriver.h"
 #include "../can/CanMonitor.h"
 #include "../driver/DisplayDriver.h"
+#include "WifiManager.h"
 
 extern "C" {
 #include "../generated/squareline/ui.h"
@@ -24,6 +25,10 @@ static uint8_t mediaReady = 0;
 static uint8_t mapReady = 0;
 static uint8_t huTxCounter = 0;
 static const char* lastPsgControl = "-";
+static uint32_t lastWifiRevision = UINT32_MAX;
+static uint32_t lastWifiNetworkRevision = UINT32_MAX;
+static HeadUnitWifiNetwork wifiUiNetworks[16] = {};
+static size_t wifiUiNetworkCount = 0;
 
 static lv_obj_t* infoPanelOwner = NULL;
 static lv_obj_t* textVolume = NULL;
@@ -62,6 +67,189 @@ static void setTextIfReady(lv_obj_t* label, const char* text) {
   if (label != NULL && text != NULL) {
     lv_label_set_text(label, text);
   }
+}
+
+static void setDisabled(lv_obj_t* object, bool disabled) {
+  if (object == NULL) return;
+  if (disabled) {
+    lv_obj_add_state(object, LV_STATE_DISABLED);
+  } else {
+    lv_obj_clear_state(object, LV_STATE_DISABLED);
+  }
+}
+
+static void refreshWifiOptions() {
+  uint32_t networkRevision = wifiManagerGetNetworkRevision();
+  if (networkRevision == lastWifiNetworkRevision || ui_Dropdown1 == NULL) return;
+  lastWifiNetworkRevision = networkRevision;
+  wifiUiNetworkCount = 0;
+
+  char options[1024];
+  size_t used = snprintf(options, sizeof(options), "Select network");
+  for (size_t index = 0; index < wifiManagerGetNetworkCount() &&
+                         wifiUiNetworkCount < 16 && used < sizeof(options); index++) {
+    HeadUnitWifiNetwork network = {};
+    if (!wifiManagerGetNetwork(index, &network)) continue;
+    wifiUiNetworks[wifiUiNetworkCount++] = network;
+    int written = snprintf(options + used, sizeof(options) - used, "\n%s  (%ld dBm)%s",
+                           network.ssid, static_cast<long>(network.rssi), network.secured ? " *" : "");
+    if (written < 0) break;
+    size_t added = static_cast<size_t>(written);
+    if (added >= sizeof(options) - used) {
+      used = sizeof(options) - 1;
+      break;
+    }
+    used += added;
+  }
+
+  lv_dropdown_set_options(ui_Dropdown1, options);
+  lv_dropdown_set_selected(ui_Dropdown1, 0);
+}
+
+static void refreshWifiUi() {
+  HeadUnitWifiState wifiState = wifiManagerGetState();
+  bool enabled = wifiState != HEAD_UNIT_WIFI_OFF;
+  bool scanning = wifiState == HEAD_UNIT_WIFI_SCANNING;
+  bool connecting = wifiState == HEAD_UNIT_WIFI_CONNECTING;
+  bool connected = wifiState == HEAD_UNIT_WIFI_CONNECTED;
+  bool hasNetworks = wifiManagerGetNetworkCount() > 0;
+
+  refreshWifiOptions();
+
+  if (ui_SwitchWiFiOnOff != NULL) {
+    if (enabled) {
+      lv_obj_add_state(ui_SwitchWiFiOnOff, LV_STATE_CHECKED);
+    } else {
+      lv_obj_clear_state(ui_SwitchWiFiOnOff, LV_STATE_CHECKED);
+    }
+  }
+
+  setDisabled(ui_BtnSearchAP, !enabled || scanning || connecting || connected);
+  setDisabled(ui_Dropdown1, !enabled || !hasNetworks || connecting || connected);
+  setDisabled(ui_TAPW, !enabled || connecting || connected);
+  setDisabled(ui_BtnShow, !enabled || connecting || connected);
+  setDisabled(ui_BtnConnect, !enabled || (!hasNetworks && !connected) || connecting);
+
+  if (ui_TextConnect1 != NULL && ui_TextDiscon != NULL) {
+    if (connected) {
+      lv_obj_add_flag(ui_TextConnect1, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(ui_TextDiscon, LV_OBJ_FLAG_HIDDEN);
+    } else {
+      lv_obj_clear_flag(ui_TextConnect1, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(ui_TextDiscon, LV_OBJ_FLAG_HIDDEN);
+    }
+  }
+
+  if (connected && ui_TAPW != NULL) {
+    lv_textarea_set_text(ui_TAPW, "");
+  }
+
+  char statusText[64];
+  switch (wifiState) {
+    case HEAD_UNIT_WIFI_OFF:
+      snprintf(statusText, sizeof(statusText), "Wi-Fi Off");
+      break;
+    case HEAD_UNIT_WIFI_IDLE:
+      snprintf(statusText, sizeof(statusText), hasNetworks ? "Select network" : "No networks found");
+      break;
+    case HEAD_UNIT_WIFI_SCANNING:
+      snprintf(statusText, sizeof(statusText), "Scanning...");
+      break;
+    case HEAD_UNIT_WIFI_CONNECTING:
+      snprintf(statusText, sizeof(statusText), "Connecting...");
+      break;
+    case HEAD_UNIT_WIFI_CONNECTED: {
+      char ssid[33];
+      wifiManagerGetConnectedSsid(ssid, sizeof(ssid));
+      snprintf(statusText, sizeof(statusText), "Connected: %.32s", ssid);
+      break;
+    }
+    case HEAD_UNIT_WIFI_FAILED:
+    default:
+      snprintf(statusText, sizeof(statusText), "Connection failed");
+      break;
+  }
+  setTextIfReady(ui_TextSearching, statusText);
+
+  if ((!enabled || connected) && ui_Keyboard2 != NULL) {
+    lv_obj_add_flag(ui_Keyboard2, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
+static void onWifiSwitch(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_VALUE_CHANGED) return;
+  wifiManagerRequestEnabled(lv_obj_has_state(ui_SwitchWiFiOnOff, LV_STATE_CHECKED));
+}
+
+static void onWifiSearch(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  wifiManagerRequestScan();
+}
+
+static void onWifiSelection(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_VALUE_CHANGED) return;
+  uint16_t selected = lv_dropdown_get_selected(ui_Dropdown1);
+  if (selected == 0) {
+    setTextIfReady(ui_TextSearching, "Select network");
+    return;
+  }
+
+  HeadUnitWifiNetwork network = {};
+  if (selected <= wifiUiNetworkCount) {
+    network = wifiUiNetworks[selected - 1];
+    lv_textarea_set_text(ui_TAPW, "");
+    setTextIfReady(ui_TextSearching, network.secured ? "Password required" : "Open network");
+  }
+}
+
+static void onWifiPassword(lv_event_t* event) {
+  lv_event_code_t code = lv_event_get_code(event);
+  if (code != LV_EVENT_CLICKED && code != LV_EVENT_FOCUSED) return;
+  lv_keyboard_set_textarea(ui_Keyboard2, ui_TAPW);
+  lv_obj_clear_flag(ui_Keyboard2, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_foreground(ui_Keyboard2);
+}
+
+static void onWifiKeyboard(lv_event_t* event) {
+  lv_event_code_t code = lv_event_get_code(event);
+  if (code != LV_EVENT_READY && code != LV_EVENT_CANCEL) return;
+  lv_obj_add_flag(ui_Keyboard2, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_clear_state(ui_TAPW, LV_STATE_FOCUSED);
+}
+
+static void onWifiShowPassword(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  bool hidden = lv_textarea_get_password_mode(ui_TAPW);
+  lv_textarea_set_password_mode(ui_TAPW, !hidden);
+  setTextIfReady(ui_TextShow, hidden ? "Hide" : "Show");
+}
+
+static void onWifiConnect(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  if (ui_TextDiscon != NULL && !lv_obj_has_flag(ui_TextDiscon, LV_OBJ_FLAG_HIDDEN)) {
+    wifiManagerRequestDisconnect();
+    return;
+  }
+
+  uint16_t selected = lv_dropdown_get_selected(ui_Dropdown1);
+  HeadUnitWifiNetwork network = {};
+  if (selected == 0 || selected > wifiUiNetworkCount) {
+    setTextIfReady(ui_TextSearching, "Select network");
+    return;
+  }
+  network = wifiUiNetworks[selected - 1];
+
+  wifiManagerRequestConnect(network.ssid, network.secured ? lv_textarea_get_text(ui_TAPW) : "");
+}
+
+static void bindWifiEvents() {
+  lv_obj_add_event_cb(ui_SwitchWiFiOnOff, onWifiSwitch, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(ui_BtnSearchAP, onWifiSearch, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(ui_Dropdown1, onWifiSelection, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(ui_TAPW, onWifiPassword, LV_EVENT_ALL, NULL);
+  lv_obj_add_event_cb(ui_Keyboard2, onWifiKeyboard, LV_EVENT_ALL, NULL);
+  lv_obj_add_event_cb(ui_BtnShow, onWifiShowPassword, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(ui_BtnConnect, onWifiConnect, LV_EVENT_CLICKED, NULL);
 }
 
 static lv_obj_t* createInfoLabel(const char* text, int16_t x, int16_t y) {
@@ -247,6 +435,8 @@ static void loadScreen(lv_obj_t** screen, lv_scr_load_anim_t anim, void (*init)(
 void headUnitHmiBegin() {
   if (displayDriverLock(-1)) {
     ui_init();
+    bindWifiEvents();
+    refreshWifiUi();
     headUnitHmiUpdateClock();
     refreshHvacInfoLabels();
     refreshInfoModeLabels();
@@ -267,6 +457,7 @@ void headUnitHmiUpdateClock() {
   if (ui_Time != NULL) lv_label_set_text(ui_Time, timeText);
   if (ui_Time1 != NULL) lv_label_set_text(ui_Time1, timeText);
   if (ui_Time2 != NULL) lv_label_set_text(ui_Time2, timeText);
+  if (ui_Time3 != NULL) lv_label_set_text(ui_Time3, timeText);
   if (ui_CurTime != NULL) lv_label_set_text(ui_CurTime, timeText);
 }
 
@@ -346,12 +537,22 @@ void headUnitHmiOpenSettingInfo() {
 }
 
 void headUnitHmiTick() {
+  wifiManagerTick();
+
   uint32_t now = millis();
-  if (now - lastClockUpdateMs < 1000) return;
-  lastClockUpdateMs = now;
+  bool updateClock = now - lastClockUpdateMs >= 1000;
+  bool updateWifi = wifiManagerGetRevision() != lastWifiRevision;
+  if (!updateClock && !updateWifi) return;
 
   if (displayDriverLock(20)) {
-    headUnitHmiUpdateClock();
+    if (updateClock) {
+      lastClockUpdateMs = now;
+      headUnitHmiUpdateClock();
+    }
+    if (updateWifi) {
+      lastWifiRevision = wifiManagerGetRevision();
+      refreshWifiUi();
+    }
     displayDriverUnlock();
   }
 }

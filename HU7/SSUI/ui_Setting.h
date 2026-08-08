@@ -18,7 +18,7 @@ extern lv_obj_t * ui_Setting;
 extern lv_obj_t * ui_TopBar1;
 extern lv_obj_t * ui_Time1;
 extern lv_obj_t * ui_Mode1;
-extern lv_obj_t * ui_Date1;
+extern lv_obj_t * ui_Date3;
 extern lv_obj_t * ui_UnderBar1;
 extern void ui_event_BackBtn1(lv_event_t * e);
 extern lv_obj_t * ui_BackBtn1;
@@ -32,6 +32,7 @@ extern void ui_event_CardInfo(lv_event_t * e);
 extern lv_obj_t * ui_CardInfo;
 extern lv_obj_t * ui_TextInfo;
 extern lv_obj_t * ui_ContentWifi;
+extern void ui_event_CardWifi(lv_event_t * e);
 extern lv_obj_t * ui_CardWifi;
 extern lv_obj_t * ui_TextWifi;
 extern lv_obj_t * ui_ContentProfile;
@@ -46,6 +47,7 @@ extern lv_obj_t * ui_TextConnect;
 extern lv_obj_t * ui_ContenGeneral;
 extern lv_obj_t * ui_CardGeneral;
 extern lv_obj_t * ui_TextGeneral;
+extern lv_obj_t * ui_Container1;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus

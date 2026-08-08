@@ -9,7 +9,7 @@ lv_obj_t * ui_Setting = NULL;
 lv_obj_t * ui_TopBar1 = NULL;
 lv_obj_t * ui_Time1 = NULL;
 lv_obj_t * ui_Mode1 = NULL;
-lv_obj_t * ui_Date1 = NULL;
+lv_obj_t * ui_Date3 = NULL;
 lv_obj_t * ui_UnderBar1 = NULL;
 lv_obj_t * ui_BackBtn1 = NULL;
 lv_obj_t * ui_CurrentMedia1 = NULL;
@@ -34,6 +34,7 @@ lv_obj_t * ui_TextConnect = NULL;
 lv_obj_t * ui_ContenGeneral = NULL;
 lv_obj_t * ui_CardGeneral = NULL;
 lv_obj_t * ui_TextGeneral = NULL;
+lv_obj_t * ui_Container1 = NULL;
 // event funtions
 void ui_event_Setting(lv_event_t * e)
 {
@@ -71,6 +72,15 @@ void ui_event_CardInfo(lv_event_t * e)
     }
 }
 
+void ui_event_CardWifi(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        _ui_screen_change(&ui_SettingWiFi, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_SettingWiFi_screen_init);
+    }
+}
+
 // build funtions
 
 void ui_Setting_screen_init(void)
@@ -105,13 +115,13 @@ void ui_Setting_screen_init(void)
     lv_obj_set_align(ui_Mode1, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Mode1, "Home");
 
-    ui_Date1 = lv_label_create(ui_TopBar1);
-    lv_obj_set_width(ui_Date1, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Date1, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Date1, -12);
-    lv_obj_set_y(ui_Date1, 0);
-    lv_obj_set_align(ui_Date1, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Date1, "2026.06.01");
+    ui_Date3 = lv_label_create(ui_TopBar1);
+    lv_obj_set_width(ui_Date3, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Date3, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Date3, -12);
+    lv_obj_set_y(ui_Date3, 0);
+    lv_obj_set_align(ui_Date3, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Date3, "2026.06.01");
 
     ui_UnderBar1 = lv_obj_create(ui_Setting);
     lv_obj_remove_style_all(ui_UnderBar1);
@@ -298,9 +308,17 @@ void ui_Setting_screen_init(void)
     lv_obj_set_align(ui_TextGeneral, LV_ALIGN_CENTER);
     lv_label_set_text(ui_TextGeneral, "General");
 
+    ui_Container1 = lv_obj_create(ui_Setting);
+    lv_obj_remove_style_all(ui_Container1);
+    lv_obj_set_width(ui_Container1, 100);
+    lv_obj_set_height(ui_Container1, 50);
+    lv_obj_set_align(ui_Container1, LV_ALIGN_CENTER);
+    lv_obj_clear_flag(ui_Container1, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
     lv_obj_add_event_cb(ui_BackBtn1, ui_event_BackBtn1, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_HomeBtn1, ui_event_HomeBtn1, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_CardInfo, ui_event_CardInfo, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_CardWifi, ui_event_CardWifi, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Setting, ui_event_Setting, LV_EVENT_ALL, NULL);
 
 }
@@ -314,7 +332,7 @@ void ui_Setting_screen_destroy(void)
     ui_TopBar1 = NULL;
     ui_Time1 = NULL;
     ui_Mode1 = NULL;
-    ui_Date1 = NULL;
+    ui_Date3 = NULL;
     ui_UnderBar1 = NULL;
     ui_BackBtn1 = NULL;
     ui_CurrentMedia1 = NULL;
@@ -339,5 +357,6 @@ void ui_Setting_screen_destroy(void)
     ui_ContenGeneral = NULL;
     ui_CardGeneral = NULL;
     ui_TextGeneral = NULL;
+    ui_Container1 = NULL;
 
 }

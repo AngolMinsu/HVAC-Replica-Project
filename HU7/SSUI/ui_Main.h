@@ -44,6 +44,7 @@ extern void ui_event_CardMedia(lv_event_t * e);
 extern lv_obj_t * ui_CardMedia;
 extern lv_obj_t * ui_Media;
 // CUSTOM VARIABLES
+extern lv_obj_t * uic_Date;
 
 #ifdef __cplusplus
 } /*extern "C"*/

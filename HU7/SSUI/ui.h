@@ -23,6 +23,8 @@ extern "C" {
 #endif
 
 #include "ui_helpers.h"
+#include "ui_comp.h"
+#include "ui_comp_hook.h"
 #include "ui_events.h"
 
 ///////////////////// SCREENS ////////////////////
@@ -31,6 +33,7 @@ extern "C" {
 #include "ui_MapScreen.h"
 #include "ui_Setting.h"
 #include "ui_Setting1.h"
+#include "ui_SettingWiFi.h"
 
 ///////////////////// VARIABLES ////////////////////
 
@@ -40,7 +43,9 @@ extern "C" {
 extern lv_obj_t * ui____initial_actions0;
 
 // IMAGES AND IMAGE SETS
-LV_IMG_DECLARE(ui_img_navermap_1024_png);    // assets/NaverMap_1024.png
+// Preserve the existing generated map asset. The current SquareLine export
+// omitted it even though the HU map screen still uses this image.
+LV_IMG_DECLARE(ui_img_navermap_1024_png);
 
 // UI INIT
 void ui_init(void);

@@ -5,6 +5,7 @@
 
 #include "ui.h"
 
+lv_obj_t * uic_Date;
 lv_obj_t * ui_Main = NULL;
 lv_obj_t * ui_TopBar = NULL;
 lv_obj_t * ui_Time = NULL;
@@ -290,6 +291,7 @@ void ui_Main_screen_init(void)
     lv_obj_add_event_cb(ui_CardCon, ui_event_CardCon, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_CardMap, ui_event_CardMap, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_CardMedia, ui_event_CardMedia, LV_EVENT_ALL, NULL);
+    uic_Date = ui_Date;
 
 }
 
@@ -302,6 +304,7 @@ void ui_Main_screen_destroy(void)
     ui_TopBar = NULL;
     ui_Time = NULL;
     ui_Mode = NULL;
+    uic_Date = NULL;
     ui_Date = NULL;
     ui_UnderBar = NULL;
     ui_BackBtn = NULL;

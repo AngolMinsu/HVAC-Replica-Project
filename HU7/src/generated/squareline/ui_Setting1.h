@@ -38,6 +38,20 @@ extern lv_obj_t * ui_TxtCurDrvTmp1;
 extern lv_obj_t * ui_TxtCurPsgTmp2;
 extern lv_obj_t * ui_TxtCurPsgTmp3;
 extern lv_obj_t * ui_TextCurMode1;
+extern lv_obj_t * ui_BtnSpdUp;
+extern lv_obj_t * ui_TextUp;
+extern lv_obj_t * ui_BtnSpdDn;
+extern lv_obj_t * ui_TextDn;
+extern lv_obj_t * ui_BtnChMd;
+extern lv_obj_t * ui_TextMode;
+extern lv_obj_t * ui_BtnPsgTpDn;
+extern lv_obj_t * ui_TextDn2;
+extern lv_obj_t * ui_BtnPsgTpUp;
+extern lv_obj_t * ui_TextUp3;
+extern lv_obj_t * ui_BtnPsgTpDn2;
+extern lv_obj_t * ui_TextDn3;
+extern lv_obj_t * ui_BtnPsgTpUp2;
+extern lv_obj_t * ui_TextUp2;
 // CUSTOM VARIABLES
 
 #ifdef __cplusplus
