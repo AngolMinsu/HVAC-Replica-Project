@@ -133,7 +133,18 @@ class OtaRequestHandler(BaseHTTPRequestHandler):
         self.send_json(202, {"accepted": True})
 
     def log_message(self, fmt: str, *args: object) -> None:
-        print(f"[{self.log_date_time_string()}] {self.address_string()} {fmt % args}")
+        message = f"[{self.log_date_time_string()}] {self.address_string()} {fmt % args}"
+        callback = getattr(self.server, "log_callback", None)
+        if callback is not None:
+            callback(message)
+        else:
+            print(message)
+
+
+def create_server(host: str, port: int, log_callback=None) -> ThreadingHTTPServer:
+    server = ThreadingHTTPServer((host, port), OtaRequestHandler)
+    server.log_callback = log_callback
+    return server
 
 
 def main() -> None:
@@ -141,9 +152,14 @@ def main() -> None:
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8080)
     args = parser.parse_args()
-    server = ThreadingHTTPServer((args.host, args.port), OtaRequestHandler)
+    server = create_server(args.host, args.port)
     print(f"OTA server: http://{args.host}:{args.port}")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("OTA server stopped")
+    finally:
+        server.server_close()
 
 
 if __name__ == "__main__":

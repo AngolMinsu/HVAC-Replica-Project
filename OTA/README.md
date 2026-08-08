@@ -2,6 +2,29 @@
 
 HU7과 같은 Wi-Fi에 연결된 PC에서 실행한다.
 
+## GUI 실행
+
+`start_ota_manager.bat`을 더블클릭한다.
+
+또는 다음 명령을 실행한다.
+
+```powershell
+python ota_manager.py
+```
+
+GUI 사용 순서:
+
+1. Target과 Version을 입력한다.
+2. `Browse...`에서 빌드된 `.bin`을 선택한다.
+3. `Register Firmware`를 누른다.
+4. `Start Server`를 누른다.
+5. 표시된 HU URL이 HU7의 `OTA_SERVER_BASE_URL`과 같은지 확인한다.
+6. HU7 Setting → Connect에서 Target을 선택하고 `Check Update`를 누른다.
+
+GUI가 펌웨어 복사, manifest 생성, 크기와 SHA-256 계산을 처리한다.
+
+## CLI 실행
+
 ```powershell
 python server.py --host 0.0.0.0 --port 8080
 ```
