@@ -12,7 +12,6 @@ lv_obj_t * ui_Mode1 = NULL;
 lv_obj_t * ui_Date3 = NULL;
 lv_obj_t * ui_UnderBar1 = NULL;
 lv_obj_t * ui_BackBtn1 = NULL;
-lv_obj_t * ui_CurrentMedia1 = NULL;
 lv_obj_t * ui_HomeBtn1 = NULL;
 lv_obj_t * ui_CurrentMediaTxt1 = NULL;
 lv_obj_t * ui_ContentSet = NULL;
@@ -68,7 +67,7 @@ void ui_event_CardInfo(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
-        _ui_screen_change(&ui_Setting1, LV_SCR_LOAD_ANIM_FADE_ON, 0, 0, &ui_Setting1_screen_init);
+        _ui_screen_change(&ui_SettingMKBD, LV_SCR_LOAD_ANIM_FADE_ON, 0, 0, &ui_SettingMKBD_screen_init);
     }
 }
 
@@ -142,15 +141,6 @@ void ui_Setting_screen_init(void)
     lv_obj_set_align(ui_BackBtn1, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_BackBtn1, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_clear_flag(ui_BackBtn1, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
-    ui_CurrentMedia1 = lv_img_create(ui_UnderBar1);
-    lv_obj_set_width(ui_CurrentMedia1, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_CurrentMedia1, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_CurrentMedia1, 256);
-    lv_obj_set_y(ui_CurrentMedia1, 0);
-    lv_obj_set_align(ui_CurrentMedia1, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_CurrentMedia1, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
-    lv_obj_clear_flag(ui_CurrentMedia1, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_HomeBtn1 = lv_btn_create(ui_UnderBar1);
     lv_obj_set_width(ui_HomeBtn1, 52);
@@ -335,7 +325,6 @@ void ui_Setting_screen_destroy(void)
     ui_Date3 = NULL;
     ui_UnderBar1 = NULL;
     ui_BackBtn1 = NULL;
-    ui_CurrentMedia1 = NULL;
     ui_HomeBtn1 = NULL;
     ui_CurrentMediaTxt1 = NULL;
     ui_ContentSet = NULL;

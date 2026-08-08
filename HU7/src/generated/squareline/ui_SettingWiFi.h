@@ -21,7 +21,6 @@ extern lv_obj_t * ui_Date1;
 extern lv_obj_t * ui_UnderBar3;
 extern void ui_event_BackBtn4(lv_event_t * e);
 extern lv_obj_t * ui_BackBtn4;
-extern lv_obj_t * ui_CurrentMedia4;
 extern void ui_event_HomeBtn4(lv_event_t * e);
 extern lv_obj_t * ui_HomeBtn4;
 extern lv_obj_t * ui_CurrentMediaTxt4;

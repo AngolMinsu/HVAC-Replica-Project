@@ -43,12 +43,6 @@ static lv_obj_t* textMediaMap = NULL;
 static lv_obj_t* valueMediaMap = NULL;
 static lv_obj_t* textPsgControl = NULL;
 static lv_obj_t* valuePsgControl = NULL;
-static lv_obj_t* btnDriverTempDown = NULL;
-static lv_obj_t* btnDriverTempUp = NULL;
-static lv_obj_t* btnPassengerTempDown = NULL;
-static lv_obj_t* btnPassengerTempUp = NULL;
-static lv_obj_t* btnFanSpeed = NULL;
-static lv_obj_t* btnWindMode = NULL;
 
 static void refreshHvacInfoLabels();
 static void refreshInfoModeLabels();
@@ -252,6 +246,30 @@ static void bindWifiEvents() {
   lv_obj_add_event_cb(ui_BtnConnect, onWifiConnect, LV_EVENT_CLICKED, NULL);
 }
 
+static void addButtonSymbol(lv_obj_t* button, const char* symbol) {
+  if (button == NULL || symbol == NULL || lv_obj_get_child_cnt(button) != 0) return;
+  lv_obj_t* label = lv_label_create(button);
+  lv_label_set_text(label, symbol);
+  lv_obj_center(label);
+}
+
+static void bindNavigationSymbols() {
+  lv_obj_t* backButtons[] = {ui_BackBtn, ui_BackBtn1, ui_BackBtn2, ui_BackBtn3, ui_BackBtn4, ui_BackBtn5};
+  lv_obj_t* homeButtons[] = {ui_HomeBtn, ui_HomeBtn1, ui_HomeBtn2, ui_HomeBtn3, ui_HomeBtn4, ui_HomeBtn5};
+  for (lv_obj_t* button : backButtons) addButtonSymbol(button, LV_SYMBOL_LEFT);
+  for (lv_obj_t* button : homeButtons) addButtonSymbol(button, LV_SYMBOL_HOME);
+}
+
+static void onOpenSettingConnect(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  _ui_screen_change(&ui_SettingConnect, LV_SCR_LOAD_ANIM_NONE, 0, 0, ui_SettingConnect_screen_init);
+  headUnitHmiUpdateClock();
+}
+
+static void bindSettingConnectEvents() {
+  lv_obj_add_event_cb(ui_CardConnect, onOpenSettingConnect, LV_EVENT_CLICKED, NULL);
+}
+
 static lv_obj_t* createInfoLabel(const char* text, int16_t x, int16_t y) {
   lv_obj_t* label = lv_label_create(ui_PanelInfo);
   lv_obj_set_width(label, LV_SIZE_CONTENT);
@@ -261,21 +279,6 @@ static lv_obj_t* createInfoLabel(const char* text, int16_t x, int16_t y) {
   lv_obj_set_align(label, LV_ALIGN_CENTER);
   lv_label_set_text(label, text);
   return label;
-}
-
-static lv_obj_t* createInfoButton(const char* text, int16_t x, int16_t y, lv_event_cb_t callback) {
-  lv_obj_t* button = lv_btn_create(ui_PanelInfo);
-  lv_obj_set_size(button, 92, 34);
-  lv_obj_set_x(button, x);
-  lv_obj_set_y(button, y);
-  lv_obj_set_align(button, LV_ALIGN_CENTER);
-  lv_obj_add_event_cb(button, callback, LV_EVENT_CLICKED, NULL);
-
-  lv_obj_t* label = lv_label_create(button);
-  lv_label_set_text(label, text);
-  lv_obj_center(label);
-
-  return button;
 }
 
 static uint8_t sendHuControlRequest(uint8_t signal, uint8_t value) {
@@ -346,6 +349,12 @@ static void onFanSpeedNext(lv_event_t* event) {
   sendAndRefresh(GDS_CAN_SIGNAL_FAN_SPEED, fanSpeed);
 }
 
+static void onFanSpeedPrevious(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  fanSpeed = (fanSpeed == 0) ? GDS_FAN_SPEED_MAX : fanSpeed - 1;
+  sendAndRefresh(GDS_CAN_SIGNAL_FAN_SPEED, fanSpeed);
+}
+
 static void onWindModeNext(lv_event_t* event) {
   if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
   windMode = (windMode >= 3) ? 0 : windMode + 1;
@@ -371,12 +380,16 @@ static void ensureInfoModeLabels() {
   textPsgControl = createInfoLabel("PSG Control", 20, 0);
   valuePsgControl = createInfoLabel("-", 170, 0);
 
-  btnDriverTempDown = createInfoButton("DRV -", -310, 72, onDriverTempDown);
-  btnDriverTempUp = createInfoButton("DRV +", -210, 72, onDriverTempUp);
-  btnPassengerTempDown = createInfoButton("PSG -", -110, 72, onPassengerTempDown);
-  btnPassengerTempUp = createInfoButton("PSG +", -10, 72, onPassengerTempUp);
-  btnFanSpeed = createInfoButton("FAN", -310, 116, onFanSpeedNext);
-  btnWindMode = createInfoButton("MODE", -210, 116, onWindModeNext);
+}
+
+static void bindMkbdEvents() {
+  lv_obj_add_event_cb(ui_BtnPsgTpDn2, onDriverTempDown, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(ui_BtnPsgTpUp2, onDriverTempUp, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(ui_BtnPsgTpDn, onPassengerTempDown, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(ui_BtnPsgTpUp, onPassengerTempUp, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(ui_BtnSpdDn, onFanSpeedPrevious, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(ui_BtnSpdUp, onFanSpeedNext, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(ui_BtnChMd, onWindModeNext, LV_EVENT_CLICKED, NULL);
 }
 
 static void refreshHvacInfoLabels() {
@@ -435,7 +448,10 @@ static void loadScreen(lv_obj_t** screen, lv_scr_load_anim_t anim, void (*init)(
 void headUnitHmiBegin() {
   if (displayDriverLock(-1)) {
     ui_init();
+    bindMkbdEvents();
     bindWifiEvents();
+    bindNavigationSymbols();
+    bindSettingConnectEvents();
     refreshWifiUi();
     headUnitHmiUpdateClock();
     refreshHvacInfoLabels();
@@ -458,7 +474,7 @@ void headUnitHmiUpdateClock() {
   if (ui_Time1 != NULL) lv_label_set_text(ui_Time1, timeText);
   if (ui_Time2 != NULL) lv_label_set_text(ui_Time2, timeText);
   if (ui_Time3 != NULL) lv_label_set_text(ui_Time3, timeText);
-  if (ui_CurTime != NULL) lv_label_set_text(ui_CurTime, timeText);
+  if (ui_Time5 != NULL) lv_label_set_text(ui_Time5, timeText);
 }
 
 void headUnitHmiApplyCanPayload(const CanPayload& payload) {
@@ -533,7 +549,7 @@ void headUnitHmiOpenSetting() {
 }
 
 void headUnitHmiOpenSettingInfo() {
-  loadScreen(&ui_Setting1, LV_SCR_LOAD_ANIM_NONE, ui_Setting1_screen_init);
+  loadScreen(&ui_SettingMKBD, LV_SCR_LOAD_ANIM_NONE, ui_SettingMKBD_screen_init);
 }
 
 void headUnitHmiTick() {

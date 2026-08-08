@@ -4,6 +4,10 @@
 
 #include "../vendor/waveshare_7b/lvgl_port.h"
 
+namespace {
+constexpr uint32_t kStableRgbPixelClockHz = 26 * 1000 * 1000;
+}
+
 static void displayDriverBacklightOn() {
   wavesahre_rgb_lcd_bl_on();
 }
@@ -22,6 +26,13 @@ uint8_t displayDriverBegin() {
     Serial.println("waveshare_esp32_s3_rgb_lcd_init failed");
     return 0;
   }
+
+  esp_err_t pclkResult = esp_lcd_rgb_panel_set_pclk(panelHandle, kStableRgbPixelClockHz);
+  if (pclkResult != ESP_OK) {
+    Serial.printf("RGB pixel clock change failed: %s\n", esp_err_to_name(pclkResult));
+    return 0;
+  }
+  Serial.println("RGB pixel clock: 26MHz");
 
   displayDriverBacklightOn();
 

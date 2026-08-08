@@ -7,19 +7,13 @@
 
 lv_obj_t * ui_MapScreen = NULL;
 lv_obj_t * ui_ContentMap = NULL;
-lv_obj_t * ui_ImgDummyMap = NULL;
 lv_obj_t * ui_UnderBarMap = NULL;
 lv_obj_t * ui_BackBtn2 = NULL;
-lv_obj_t * ui_MenuBtn2 = NULL;
-lv_obj_t * ui_CurrentMedia2 = NULL;
 lv_obj_t * ui_HomeBtn2 = NULL;
 lv_obj_t * ui_CurrentMediaTxt2 = NULL;
 lv_obj_t * ui_ETA = NULL;
 lv_obj_t * ui_LeftDist = NULL;
 lv_obj_t * ui_Dst = NULL;
-lv_obj_t * ui_TopBarMap = NULL;
-lv_obj_t * ui_CurTime = NULL;
-lv_obj_t * ui_CurSpeed = NULL;
 // event funtions
 void ui_event_BackBtn2(lv_event_t * e)
 {
@@ -57,13 +51,6 @@ void ui_MapScreen_screen_init(void)
     lv_obj_set_style_bg_color(ui_ContentMap, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(ui_ContentMap, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    ui_ImgDummyMap = lv_img_create(ui_ContentMap);
-    lv_img_set_src(ui_ImgDummyMap, &ui_img_navermap_1024_png);
-    lv_obj_set_width(ui_ImgDummyMap, 2048);
-    lv_obj_set_height(ui_ImgDummyMap, 1102);
-    lv_obj_set_align(ui_ImgDummyMap, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_ImgDummyMap, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
-
     ui_UnderBarMap = lv_obj_create(ui_MapScreen);
     lv_obj_remove_style_all(ui_UnderBarMap);
     lv_obj_set_width(ui_UnderBarMap, lv_pct(100));
@@ -83,24 +70,6 @@ void ui_MapScreen_screen_init(void)
     lv_obj_set_align(ui_BackBtn2, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_BackBtn2, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_clear_flag(ui_BackBtn2, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
-    ui_MenuBtn2 = lv_btn_create(ui_UnderBarMap);
-    lv_obj_set_width(ui_MenuBtn2, 52);
-    lv_obj_set_height(ui_MenuBtn2, 50);
-    lv_obj_set_x(ui_MenuBtn2, -336);
-    lv_obj_set_y(ui_MenuBtn2, 0);
-    lv_obj_set_align(ui_MenuBtn2, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_MenuBtn2, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
-    lv_obj_clear_flag(ui_MenuBtn2, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
-    ui_CurrentMedia2 = lv_img_create(ui_UnderBarMap);
-    lv_obj_set_width(ui_CurrentMedia2, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_CurrentMedia2, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_CurrentMedia2, 256);
-    lv_obj_set_y(ui_CurrentMedia2, 0);
-    lv_obj_set_align(ui_CurrentMedia2, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_CurrentMedia2, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
-    lv_obj_clear_flag(ui_CurrentMedia2, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_HomeBtn2 = lv_btn_create(ui_UnderBarMap);
     lv_obj_set_width(ui_HomeBtn2, 52);
@@ -143,31 +112,6 @@ void ui_MapScreen_screen_init(void)
     lv_obj_set_align(ui_Dst, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Dst, "My Home");
 
-    ui_TopBarMap = lv_obj_create(ui_MapScreen);
-    lv_obj_remove_style_all(ui_TopBarMap);
-    lv_obj_set_width(ui_TopBarMap, lv_pct(100));
-    lv_obj_set_height(ui_TopBarMap, lv_pct(12));
-    lv_obj_set_x(ui_TopBarMap, 0);
-    lv_obj_set_y(ui_TopBarMap, -263);
-    lv_obj_set_align(ui_TopBarMap, LV_ALIGN_CENTER);
-    lv_obj_clear_flag(ui_TopBarMap, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
-    ui_CurTime = lv_label_create(ui_TopBarMap);
-    lv_obj_set_width(ui_CurTime, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_CurTime, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_CurTime, 460);
-    lv_obj_set_y(ui_CurTime, 0);
-    lv_obj_set_align(ui_CurTime, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_CurTime, "00:00");
-
-    ui_CurSpeed = lv_label_create(ui_TopBarMap);
-    lv_obj_set_width(ui_CurSpeed, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_CurSpeed, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_CurSpeed, -440);
-    lv_obj_set_y(ui_CurSpeed, 5);
-    lv_obj_set_align(ui_CurSpeed, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_CurSpeed, "0");
-
     lv_obj_add_event_cb(ui_BackBtn2, ui_event_BackBtn2, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_HomeBtn2, ui_event_HomeBtn2, LV_EVENT_ALL, NULL);
 
@@ -180,18 +124,12 @@ void ui_MapScreen_screen_destroy(void)
     // NULL screen variables
     ui_MapScreen = NULL;
     ui_ContentMap = NULL;
-    ui_ImgDummyMap = NULL;
     ui_UnderBarMap = NULL;
     ui_BackBtn2 = NULL;
-    ui_MenuBtn2 = NULL;
-    ui_CurrentMedia2 = NULL;
     ui_HomeBtn2 = NULL;
     ui_CurrentMediaTxt2 = NULL;
     ui_ETA = NULL;
     ui_LeftDist = NULL;
     ui_Dst = NULL;
-    ui_TopBarMap = NULL;
-    ui_CurTime = NULL;
-    ui_CurSpeed = NULL;
 
 }

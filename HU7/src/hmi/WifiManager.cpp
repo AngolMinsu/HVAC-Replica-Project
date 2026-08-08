@@ -32,6 +32,7 @@ size_t networkCount = 0;
 uint32_t revision = 1;
 uint32_t networkRevision = 1;
 uint32_t connectStartedMs = 0;
+uint32_t lastConnectionPollMs = 0;
 char connectedSsid[33] = {};
 
 void copyText(char* destination, size_t destinationSize, const char* source) {
@@ -170,10 +171,18 @@ void updateScan() {
 }
 
 void updateConnection() {
+  if (state != HEAD_UNIT_WIFI_CONNECTING && state != HEAD_UNIT_WIFI_CONNECTED) return;
+
+  uint32_t now = millis();
+  if (now - lastConnectionPollMs < 250) return;
+  lastConnectionPollMs = now;
+
   wl_status_t status = WiFi.status();
   if (status == WL_CONNECTED) {
-    String currentSsid = WiFi.SSID();
-    copyText(connectedSsid, sizeof(connectedSsid), currentSsid.c_str());
+    if (state != HEAD_UNIT_WIFI_CONNECTED) {
+      String currentSsid = WiFi.SSID();
+      copyText(connectedSsid, sizeof(connectedSsid), currentSsid.c_str());
+    }
     setState(HEAD_UNIT_WIFI_CONNECTED);
     return;
   }
@@ -186,7 +195,7 @@ void updateConnection() {
 
   if (state != HEAD_UNIT_WIFI_CONNECTING) return;
   if (status == WL_CONNECT_FAILED || status == WL_NO_SSID_AVAIL ||
-      millis() - connectStartedMs >= kConnectTimeoutMs) {
+      now - connectStartedMs >= kConnectTimeoutMs) {
     setState(HEAD_UNIT_WIFI_FAILED);
   }
 }

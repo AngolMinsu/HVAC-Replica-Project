@@ -12,7 +12,6 @@ lv_obj_t * ui_Mode3 = NULL;
 lv_obj_t * ui_Date1 = NULL;
 lv_obj_t * ui_UnderBar3 = NULL;
 lv_obj_t * ui_BackBtn4 = NULL;
-lv_obj_t * ui_CurrentMedia4 = NULL;
 lv_obj_t * ui_HomeBtn4 = NULL;
 lv_obj_t * ui_CurrentMediaTxt4 = NULL;
 lv_obj_t * ui_ContentSetInfo1 = NULL;
@@ -123,15 +122,6 @@ void ui_SettingWiFi_screen_init(void)
     lv_obj_set_align(ui_BackBtn4, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_BackBtn4, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_clear_flag(ui_BackBtn4, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
-    ui_CurrentMedia4 = lv_img_create(ui_UnderBar3);
-    lv_obj_set_width(ui_CurrentMedia4, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_CurrentMedia4, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_CurrentMedia4, 256);
-    lv_obj_set_y(ui_CurrentMedia4, 0);
-    lv_obj_set_align(ui_CurrentMedia4, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_CurrentMedia4, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
-    lv_obj_clear_flag(ui_CurrentMedia4, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
     ui_HomeBtn4 = lv_btn_create(ui_UnderBar3);
     lv_obj_set_width(ui_HomeBtn4, 52);
@@ -318,7 +308,6 @@ void ui_SettingWiFi_screen_destroy(void)
     ui_Date1 = NULL;
     ui_UnderBar3 = NULL;
     ui_BackBtn4 = NULL;
-    ui_CurrentMedia4 = NULL;
     ui_HomeBtn4 = NULL;
     ui_CurrentMediaTxt4 = NULL;
     ui_ContentSetInfo1 = NULL;

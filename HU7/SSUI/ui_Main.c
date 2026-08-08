@@ -13,17 +13,12 @@ lv_obj_t * ui_Mode = NULL;
 lv_obj_t * ui_Date = NULL;
 lv_obj_t * ui_UnderBar = NULL;
 lv_obj_t * ui_BackBtn = NULL;
-lv_obj_t * ui_MenuBtn = NULL;
-lv_obj_t * ui_CurrentMedia = NULL;
 lv_obj_t * ui_HomeBtn = NULL;
 lv_obj_t * ui_CurrentMediaTxt = NULL;
 lv_obj_t * ui_ContentHome = NULL;
 lv_obj_t * ui_ContSet = NULL;
 lv_obj_t * ui_CardSet = NULL;
 lv_obj_t * ui_Settings = NULL;
-lv_obj_t * ui_ContCon = NULL;
-lv_obj_t * ui_CardCon = NULL;
-lv_obj_t * ui_Connect = NULL;
 lv_obj_t * ui_ContMap = NULL;
 lv_obj_t * ui_CardMap = NULL;
 lv_obj_t * ui_Map = NULL;
@@ -31,15 +26,6 @@ lv_obj_t * ui_ContMedia = NULL;
 lv_obj_t * ui_CardMedia = NULL;
 lv_obj_t * ui_Media = NULL;
 // event funtions
-void ui_event_MenuBtn(lv_event_t * e)
-{
-    lv_event_code_t event_code = lv_event_get_code(e);
-
-    if(event_code == LV_EVENT_CLICKED) {
-        _ui_screen_change(&ui_Setting, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_Setting_screen_init);
-    }
-}
-
 void ui_event_HomeBtn(lv_event_t * e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);
@@ -55,15 +41,6 @@ void ui_event_CardSet(lv_event_t * e)
 
     if(event_code == LV_EVENT_CLICKED) {
         _ui_screen_change(&ui_Setting, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_Setting_screen_init);
-    }
-}
-
-void ui_event_CardCon(lv_event_t * e)
-{
-    lv_event_code_t event_code = lv_event_get_code(e);
-
-    if(event_code == LV_EVENT_CLICKED) {
-        _ui_flag_modify(ui_ContentHome, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
     }
 }
 
@@ -147,24 +124,6 @@ void ui_Main_screen_init(void)
     lv_obj_add_flag(ui_BackBtn, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_clear_flag(ui_BackBtn, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
-    ui_MenuBtn = lv_btn_create(ui_UnderBar);
-    lv_obj_set_width(ui_MenuBtn, 52);
-    lv_obj_set_height(ui_MenuBtn, 50);
-    lv_obj_set_x(ui_MenuBtn, -336);
-    lv_obj_set_y(ui_MenuBtn, 0);
-    lv_obj_set_align(ui_MenuBtn, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_MenuBtn, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
-    lv_obj_clear_flag(ui_MenuBtn, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
-    ui_CurrentMedia = lv_img_create(ui_UnderBar);
-    lv_obj_set_width(ui_CurrentMedia, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_CurrentMedia, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_CurrentMedia, 256);
-    lv_obj_set_y(ui_CurrentMedia, 0);
-    lv_obj_set_align(ui_CurrentMedia, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_CurrentMedia, LV_OBJ_FLAG_ADV_HITTEST);     /// Flags
-    lv_obj_clear_flag(ui_CurrentMedia, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
     ui_HomeBtn = lv_btn_create(ui_UnderBar);
     lv_obj_set_width(ui_HomeBtn, 52);
     lv_obj_set_height(ui_HomeBtn, 50);
@@ -194,7 +153,7 @@ void ui_Main_screen_init(void)
     lv_obj_set_height(ui_ContSet, 372);
     lv_obj_set_width(ui_ContSet, lv_pct(21));
     lv_obj_set_y(ui_ContSet, 0);
-    lv_obj_set_x(ui_ContSet, lv_pct(37));
+    lv_obj_set_x(ui_ContSet, lv_pct(25));
     lv_obj_set_align(ui_ContSet, LV_ALIGN_CENTER);
     lv_obj_clear_flag(ui_ContSet, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
@@ -213,36 +172,10 @@ void ui_Main_screen_init(void)
     lv_obj_set_align(ui_Settings, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Settings, "Settings");
 
-    ui_ContCon = lv_obj_create(ui_ContentHome);
-    lv_obj_remove_style_all(ui_ContCon);
-    lv_obj_set_height(ui_ContCon, 372);
-    lv_obj_set_width(ui_ContCon, lv_pct(21));
-    lv_obj_set_y(ui_ContCon, 0);
-    lv_obj_set_x(ui_ContCon, lv_pct(12));
-    lv_obj_set_align(ui_ContCon, LV_ALIGN_CENTER);
-    lv_obj_clear_flag(ui_ContCon, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
-    ui_CardCon = lv_btn_create(ui_ContCon);
-    lv_obj_set_height(ui_CardCon, 372);
-    lv_obj_set_width(ui_CardCon, lv_pct(100));
-    lv_obj_set_align(ui_CardCon, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_CardCon, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
-    lv_obj_clear_flag(ui_CardCon, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
-    ui_Connect = lv_label_create(ui_ContCon);
-    lv_obj_set_width(ui_Connect, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Connect, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Connect, 0);
-    lv_obj_set_y(ui_Connect, -141);
-    lv_obj_set_align(ui_Connect, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Connect, "Connect");
-
     ui_ContMap = lv_obj_create(ui_ContentHome);
     lv_obj_remove_style_all(ui_ContMap);
     lv_obj_set_height(ui_ContMap, 372);
     lv_obj_set_width(ui_ContMap, lv_pct(21));
-    lv_obj_set_y(ui_ContMap, 0);
-    lv_obj_set_x(ui_ContMap, lv_pct(-13));
     lv_obj_set_align(ui_ContMap, LV_ALIGN_CENTER);
     lv_obj_clear_flag(ui_ContMap, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
@@ -266,7 +199,7 @@ void ui_Main_screen_init(void)
     lv_obj_set_height(ui_ContMedia, 372);
     lv_obj_set_width(ui_ContMedia, lv_pct(21));
     lv_obj_set_y(ui_ContMedia, 0);
-    lv_obj_set_x(ui_ContMedia, lv_pct(-38));
+    lv_obj_set_x(ui_ContMedia, lv_pct(-25));
     lv_obj_set_align(ui_ContMedia, LV_ALIGN_CENTER);
     lv_obj_clear_flag(ui_ContMedia, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
@@ -285,10 +218,8 @@ void ui_Main_screen_init(void)
     lv_obj_set_align(ui_Media, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Media, "Media");
 
-    lv_obj_add_event_cb(ui_MenuBtn, ui_event_MenuBtn, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_HomeBtn, ui_event_HomeBtn, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_CardSet, ui_event_CardSet, LV_EVENT_ALL, NULL);
-    lv_obj_add_event_cb(ui_CardCon, ui_event_CardCon, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_CardMap, ui_event_CardMap, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_CardMedia, ui_event_CardMedia, LV_EVENT_ALL, NULL);
     uic_Date = ui_Date;
@@ -308,17 +239,12 @@ void ui_Main_screen_destroy(void)
     ui_Date = NULL;
     ui_UnderBar = NULL;
     ui_BackBtn = NULL;
-    ui_MenuBtn = NULL;
-    ui_CurrentMedia = NULL;
     ui_HomeBtn = NULL;
     ui_CurrentMediaTxt = NULL;
     ui_ContentHome = NULL;
     ui_ContSet = NULL;
     ui_CardSet = NULL;
     ui_Settings = NULL;
-    ui_ContCon = NULL;
-    ui_CardCon = NULL;
-    ui_Connect = NULL;
     ui_ContMap = NULL;
     ui_CardMap = NULL;
     ui_Map = NULL;
