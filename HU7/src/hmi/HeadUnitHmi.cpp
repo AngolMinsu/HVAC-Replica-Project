@@ -6,6 +6,7 @@
 #include "../can/CanDriver.h"
 #include "../can/CanMonitor.h"
 #include "../driver/DisplayDriver.h"
+#include "../ota/OtaManager.h"
 #include "WifiManager.h"
 
 extern "C" {
@@ -27,6 +28,7 @@ static uint8_t huTxCounter = 0;
 static const char* lastPsgControl = "-";
 static uint32_t lastWifiRevision = UINT32_MAX;
 static uint32_t lastWifiNetworkRevision = UINT32_MAX;
+static uint32_t lastOtaRevision = UINT32_MAX;
 static HeadUnitWifiNetwork wifiUiNetworks[16] = {};
 static size_t wifiUiNetworkCount = 0;
 
@@ -260,14 +262,77 @@ static void bindNavigationSymbols() {
   for (lv_obj_t* button : homeButtons) addButtonSymbol(button, LV_SYMBOL_HOME);
 }
 
+static const char* otaStateText(hu7::ota::OtaState state) {
+  switch (state) {
+    case hu7::ota::OtaState::Connecting: return "Connecting";
+    case hu7::ota::OtaState::CheckingVersion: return "Checking";
+    case hu7::ota::OtaState::UpdateAvailable: return "Available";
+    case hu7::ota::OtaState::Failed: return "Failed";
+    default: return "Idle";
+  }
+}
+
+static void refreshOtaUi(const hu7::ota::Snapshot& snapshot) {
+  char valueText[32];
+  setTextIfReady(ui_TextCurVer2, snapshot.currentVersion[0] ? snapshot.currentVersion : "-");
+  setTextIfReady(ui_TextLatVer2, snapshot.latestVersion[0] ? snapshot.latestVersion : "-");
+  setTextIfReady(ui_TextOTAServer2, snapshot.serverStatus);
+  setTextIfReady(ui_TextStatus2, snapshot.targetStatus);
+  setTextIfReady(ui_TextPackTarget, snapshot.packageTarget[0] ? snapshot.packageTarget : "-");
+  setTextIfReady(ui_ValueUpdateStatus, otaStateText(snapshot.state));
+  setTextIfReady(ui_TextErr, snapshot.message);
+
+  if (snapshot.firmwareSize == 0) {
+    setTextIfReady(ui_TextFirmSize2, "-");
+  } else {
+    snprintf(valueText, sizeof(valueText), "%lu KB",
+             static_cast<unsigned long>((snapshot.firmwareSize + 1023) / 1024));
+    setTextIfReady(ui_TextFirmSize2, valueText);
+  }
+
+  snprintf(valueText, sizeof(valueText), "%u %%", snapshot.progress);
+  setTextIfReady(ui_TextUpdatePercent, valueText);
+  if (ui_BarUpdateProgress != NULL) {
+    lv_bar_set_value(ui_BarUpdateProgress, snapshot.progress, LV_ANIM_OFF);
+  }
+
+  const bool busy = snapshot.state == hu7::ota::OtaState::Connecting ||
+                    snapshot.state == hu7::ota::OtaState::CheckingVersion;
+  setDisabled(ui_DropdownTarget, busy);
+  setDisabled(ui_ButtonRefresh, busy || snapshot.selectedTarget != hu7::ota::UpdateTarget::HU7);
+  setDisabled(ui_ButtonUpdate, true);
+  if (ui_ButtonCancel != NULL) lv_obj_add_flag(ui_ButtonCancel, LV_OBJ_FLAG_HIDDEN);
+}
+
+static void onOtaTargetSelection(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_VALUE_CHANGED) return;
+  const uint16_t selected = lv_dropdown_get_selected(ui_DropdownTarget);
+  hu7::ota::UpdateTarget target = hu7::ota::UpdateTarget::None;
+  if (selected <= static_cast<uint16_t>(hu7::ota::UpdateTarget::BMS)) {
+    target = static_cast<hu7::ota::UpdateTarget>(selected);
+  }
+  hu7::ota::otaManagerSelectTarget(target);
+}
+
+static void onOtaCheck(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  if (!hu7::ota::otaManagerRequestCheck()) {
+    setTextIfReady(ui_TextErr, "OTA request queue is busy");
+  }
+}
+
 static void onOpenSettingConnect(lv_event_t* event) {
   if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
   _ui_screen_change(&ui_SettingConnect, LV_SCR_LOAD_ANIM_NONE, 0, 0, ui_SettingConnect_screen_init);
   headUnitHmiUpdateClock();
+  hu7::ota::Snapshot snapshot{};
+  if (hu7::ota::otaManagerGetSnapshot(snapshot)) refreshOtaUi(snapshot);
 }
 
 static void bindSettingConnectEvents() {
   lv_obj_add_event_cb(ui_CardConnect, onOpenSettingConnect, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(ui_DropdownTarget, onOtaTargetSelection, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(ui_ButtonRefresh, onOtaCheck, LV_EVENT_CLICKED, NULL);
 }
 
 static lv_obj_t* createInfoLabel(const char* text, int16_t x, int16_t y) {
@@ -453,6 +518,8 @@ void headUnitHmiBegin() {
     bindNavigationSymbols();
     bindSettingConnectEvents();
     refreshWifiUi();
+    hu7::ota::Snapshot otaSnapshot{};
+    if (hu7::ota::otaManagerGetSnapshot(otaSnapshot)) refreshOtaUi(otaSnapshot);
     headUnitHmiUpdateClock();
     refreshHvacInfoLabels();
     refreshInfoModeLabels();
@@ -558,7 +625,10 @@ void headUnitHmiTick() {
   uint32_t now = millis();
   bool updateClock = now - lastClockUpdateMs >= 1000;
   bool updateWifi = wifiManagerGetRevision() != lastWifiRevision;
-  if (!updateClock && !updateWifi) return;
+  hu7::ota::Snapshot otaSnapshot{};
+  bool updateOta = hu7::ota::otaManagerGetSnapshot(otaSnapshot) &&
+                   otaSnapshot.revision != lastOtaRevision;
+  if (!updateClock && !updateWifi && !updateOta) return;
 
   if (displayDriverLock(20)) {
     if (updateClock) {
@@ -568,6 +638,10 @@ void headUnitHmiTick() {
     if (updateWifi) {
       lastWifiRevision = wifiManagerGetRevision();
       refreshWifiUi();
+    }
+    if (updateOta) {
+      lastOtaRevision = otaSnapshot.revision;
+      refreshOtaUi(otaSnapshot);
     }
     displayDriverUnlock();
   }
