@@ -20,3 +20,7 @@ build/
 *.bak
 Thumbs.db
 .DS_Store
+
+.agents
+AGENTS.md
+docs

@@ -5,3 +5,9 @@
 test/**/*.exe
 test/test_all.exe
 ESP32-S3-Touch-LCD-7B-master
+
+HU
+HU32
+
+MKBD
+.agents
