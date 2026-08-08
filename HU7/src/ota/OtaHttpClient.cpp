@@ -1,7 +1,10 @@
 #include "OtaHttpClient.h"
 
 #include <HTTPClient.h>
+#include <NetworkClient.h>
+#include <Update.h>
 #include <WiFiClient.h>
+#include <mbedtls/sha256.h>
 
 #include "OtaConfig.h"
 
@@ -115,6 +118,123 @@ bool OtaHttpClient::getLatest(UpdateTarget target, Manifest& manifest,
       !jsonString(payload, "sha256", manifest.sha256, sizeof(manifest.sha256)) ||
       !jsonUnsigned(payload, "size", manifest.size)) {
     setError(error, errorSize, "Invalid manifest JSON");
+    return false;
+  }
+  return true;
+}
+
+bool OtaHttpClient::downloadAndInstall(const Manifest& manifest,
+                                       OtaProgressCallback progressCallback,
+                                       void* progressContext,
+                                       char* error, size_t errorSize) {
+  const String firmwareUrl = String(manifest.url).startsWith("http")
+                                 ? String(manifest.url)
+                                 : String(kServerBaseUrl) + manifest.url;
+  WiFiClient networkClient;
+  HTTPClient http;
+  http.setConnectTimeout(kHttpTimeoutMs);
+  http.setTimeout(kHttpTimeoutMs);
+  if (!http.begin(networkClient, firmwareUrl)) {
+    setError(error, errorSize, "Firmware HTTP begin failed");
+    return false;
+  }
+
+  const int statusCode = http.GET();
+  if (statusCode != HTTP_CODE_OK) {
+    snprintf(error, errorSize, "Firmware HTTP %d", statusCode);
+    http.end();
+    return false;
+  }
+  const int contentLength = http.getSize();
+  if (contentLength < 0 || static_cast<uint32_t>(contentLength) != manifest.size) {
+    setError(error, errorSize, "Firmware size mismatch");
+    http.end();
+    return false;
+  }
+  if (!Update.begin(manifest.size, U_FLASH)) {
+    snprintf(error, errorSize, "OTA begin: %s", Update.errorString());
+    http.end();
+    return false;
+  }
+
+  mbedtls_sha256_context sha{};
+  mbedtls_sha256_init(&sha);
+  if (mbedtls_sha256_starts(&sha, 0) != 0) {
+    setError(error, errorSize, "SHA-256 init failed");
+    mbedtls_sha256_free(&sha);
+    Update.abort();
+    http.end();
+    return false;
+  }
+
+  NetworkClient& stream = http.getStream();
+  uint8_t buffer[4096];
+  uint32_t received = 0;
+  uint32_t lastDataMs = millis();
+  uint8_t lastProgress = 255;
+  bool failed = false;
+  while (received < manifest.size) {
+    const int available = stream.available();
+    if (available > 0) {
+      const size_t remaining = manifest.size - received;
+      const size_t chunkSize = min(static_cast<size_t>(available),
+                                   min(sizeof(buffer), remaining));
+      const int bytesRead = stream.readBytes(buffer, chunkSize);
+      if (bytesRead <= 0) {
+        setError(error, errorSize, "Firmware read failed");
+        failed = true;
+        break;
+      }
+      if (Update.write(buffer, static_cast<size_t>(bytesRead)) != static_cast<size_t>(bytesRead)) {
+        snprintf(error, errorSize, "OTA write: %s", Update.errorString());
+        failed = true;
+        break;
+      }
+      if (mbedtls_sha256_update(&sha, buffer, static_cast<size_t>(bytesRead)) != 0) {
+        setError(error, errorSize, "SHA-256 update failed");
+        failed = true;
+        break;
+      }
+      received += static_cast<uint32_t>(bytesRead);
+      lastDataMs = millis();
+      const uint8_t progress = static_cast<uint8_t>((received * 100ULL) / manifest.size);
+      if (progress != lastProgress && progressCallback != nullptr) {
+        lastProgress = progress;
+        progressCallback(progress, progressContext);
+      }
+      continue;
+    }
+    if (!http.connected() || millis() - lastDataMs > 10000) {
+      setError(error, errorSize, "Firmware download interrupted");
+      failed = true;
+      break;
+    }
+    delay(1);
+  }
+
+  uint8_t digest[32]{};
+  if (!failed && mbedtls_sha256_finish(&sha, digest) != 0) {
+    setError(error, errorSize, "SHA-256 finish failed");
+    failed = true;
+  }
+  mbedtls_sha256_free(&sha);
+  http.end();
+  if (failed) {
+    Update.abort();
+    return false;
+  }
+
+  char digestText[65]{};
+  for (size_t index = 0; index < sizeof(digest); ++index) {
+    snprintf(digestText + index * 2, 3, "%02x", digest[index]);
+  }
+  if (strcmp(digestText, manifest.sha256) != 0) {
+    setError(error, errorSize, "Firmware SHA-256 mismatch");
+    Update.abort();
+    return false;
+  }
+  if (!Update.end(false) || !Update.isFinished()) {
+    snprintf(error, errorSize, "OTA finalize: %s", Update.errorString());
     return false;
   }
   return true;

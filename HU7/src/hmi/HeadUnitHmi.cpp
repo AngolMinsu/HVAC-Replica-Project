@@ -267,6 +267,9 @@ static const char* otaStateText(hu7::ota::OtaState state) {
     case hu7::ota::OtaState::Connecting: return "Connecting";
     case hu7::ota::OtaState::CheckingVersion: return "Checking";
     case hu7::ota::OtaState::UpdateAvailable: return "Available";
+    case hu7::ota::OtaState::Downloading: return "Downloading";
+    case hu7::ota::OtaState::Verifying: return "Verifying";
+    case hu7::ota::OtaState::Rebooting: return "Rebooting";
     case hu7::ota::OtaState::Failed: return "Failed";
     default: return "Idle";
   }
@@ -297,10 +300,13 @@ static void refreshOtaUi(const hu7::ota::Snapshot& snapshot) {
   }
 
   const bool busy = snapshot.state == hu7::ota::OtaState::Connecting ||
-                    snapshot.state == hu7::ota::OtaState::CheckingVersion;
+                    snapshot.state == hu7::ota::OtaState::CheckingVersion ||
+                    snapshot.state == hu7::ota::OtaState::Downloading ||
+                    snapshot.state == hu7::ota::OtaState::Verifying ||
+                    snapshot.state == hu7::ota::OtaState::Rebooting;
   setDisabled(ui_DropdownTarget, busy);
   setDisabled(ui_ButtonRefresh, busy || snapshot.selectedTarget != hu7::ota::UpdateTarget::HU7);
-  setDisabled(ui_ButtonUpdate, true);
+  setDisabled(ui_ButtonUpdate, busy || !snapshot.updateAvailable);
   if (ui_ButtonCancel != NULL) lv_obj_add_flag(ui_ButtonCancel, LV_OBJ_FLAG_HIDDEN);
 }
 
@@ -321,6 +327,13 @@ static void onOtaCheck(lv_event_t* event) {
   }
 }
 
+static void onOtaUpdate(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  if (!hu7::ota::otaManagerRequestUpdate()) {
+    setTextIfReady(ui_TextErr, "Check update again");
+  }
+}
+
 static void onOpenSettingConnect(lv_event_t* event) {
   if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
   _ui_screen_change(&ui_SettingConnect, LV_SCR_LOAD_ANIM_NONE, 0, 0, ui_SettingConnect_screen_init);
@@ -333,6 +346,7 @@ static void bindSettingConnectEvents() {
   lv_obj_add_event_cb(ui_CardConnect, onOpenSettingConnect, LV_EVENT_CLICKED, NULL);
   lv_obj_add_event_cb(ui_DropdownTarget, onOtaTargetSelection, LV_EVENT_VALUE_CHANGED, NULL);
   lv_obj_add_event_cb(ui_ButtonRefresh, onOtaCheck, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(ui_ButtonUpdate, onOtaUpdate, LV_EVENT_CLICKED, NULL);
 }
 
 static lv_obj_t* createInfoLabel(const char* text, int16_t x, int16_t y) {

@@ -17,6 +17,9 @@ enum class OtaState : uint8_t {
   Connecting,
   CheckingVersion,
   UpdateAvailable,
+  Downloading,
+  Verifying,
+  Rebooting,
   Failed,
 };
 

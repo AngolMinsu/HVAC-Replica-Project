@@ -1,5 +1,6 @@
 #include "OtaManager.h"
 
+#include <Preferences.h>
 #include <WiFi.h>
 
 #include "FirmwareIdentity.h"
@@ -8,7 +9,7 @@
 namespace hu7::ota {
 namespace {
 
-enum class CommandType : uint8_t { Check };
+enum class CommandType : uint8_t { Check, Update };
 
 struct Command {
   CommandType type;
@@ -18,6 +19,11 @@ struct Command {
 QueueHandle_t commandQueue = nullptr;
 SemaphoreHandle_t snapshotMutex = nullptr;
 Snapshot current{};
+Manifest availableManifest{};
+bool manifestReady = false;
+Preferences otaPreferences;
+bool preferencesReady = false;
+char installedVersion[24]{};
 
 void copyText(char* output, size_t outputSize, const char* value) {
   snprintf(output, outputSize, "%s", value != nullptr ? value : "-");
@@ -68,6 +74,7 @@ void fail(Snapshot& snapshot, const char* message, bool serverConnected) {
 }
 
 void checkLatest(UpdateTarget target) {
+  manifestReady = false;
   Snapshot snapshot = readCurrent();
   snapshot.selectedTarget = target;
   snapshot.progress = 0;
@@ -76,7 +83,7 @@ void checkLatest(UpdateTarget target) {
   snapshot.packageTarget[0] = '\0';
   snapshot.updateAvailable = false;
   copyText(snapshot.currentVersion, sizeof(snapshot.currentVersion),
-           target == UpdateTarget::HU7 ? kFirmwareVersion : "-");
+           target == UpdateTarget::HU7 ? installedVersion : "-");
 
   if (target == UpdateTarget::None) {
     fail(snapshot, "Select update target", false);
@@ -123,7 +130,9 @@ void checkLatest(UpdateTarget target) {
   copyText(snapshot.latestVersion, sizeof(snapshot.latestVersion), manifest.version);
   copyText(snapshot.packageTarget, sizeof(snapshot.packageTarget), manifest.target);
   snapshot.firmwareSize = manifest.size;
-  if (compareVersion(kFirmwareVersion, manifest.version) < 0) {
+  if (compareVersion(installedVersion, manifest.version) < 0) {
+    availableManifest = manifest;
+    manifestReady = true;
     snapshot.state = OtaState::UpdateAvailable;
     snapshot.updateAvailable = true;
     copyText(snapshot.message, sizeof(snapshot.message), "Update available");
@@ -133,6 +142,55 @@ void checkLatest(UpdateTarget target) {
     copyText(snapshot.message, sizeof(snapshot.message), "Firmware is up to date");
   }
   publish(snapshot);
+}
+
+void updateProgress(uint8_t progress, void* context) {
+  (void)context;
+  Snapshot snapshot = readCurrent();
+  snapshot.progress = progress;
+  snapshot.state = progress < 100 ? OtaState::Downloading : OtaState::Verifying;
+  copyText(snapshot.message, sizeof(snapshot.message),
+           progress < 100 ? "Downloading firmware" : "Verifying firmware");
+  publish(snapshot);
+}
+
+void installAvailableUpdate(UpdateTarget target) {
+  Snapshot snapshot = readCurrent();
+  if (target != UpdateTarget::HU7 || !manifestReady ||
+      strcmp(availableManifest.target, kFirmwareTarget) != 0) {
+    fail(snapshot, "Check update again", true);
+    return;
+  }
+  if (WiFi.status() != WL_CONNECTED) {
+    fail(snapshot, "Wi-Fi is disconnected", false);
+    return;
+  }
+
+  snapshot.state = OtaState::Downloading;
+  snapshot.progress = 0;
+  snapshot.updateAvailable = false;
+  copyText(snapshot.message, sizeof(snapshot.message), "Downloading firmware");
+  publish(snapshot);
+
+  OtaHttpClient client;
+  char error[96]{};
+  if (!client.downloadAndInstall(availableManifest, updateProgress, nullptr,
+                                 error, sizeof(error))) {
+    snapshot = readCurrent();
+    fail(snapshot, error, WiFi.status() == WL_CONNECTED);
+    return;
+  }
+
+  manifestReady = false;
+  copyText(installedVersion, sizeof(installedVersion), availableManifest.version);
+  if (preferencesReady) otaPreferences.putString("version", installedVersion);
+  snapshot = readCurrent();
+  snapshot.state = OtaState::Rebooting;
+  snapshot.progress = 100;
+  copyText(snapshot.message, sizeof(snapshot.message), "Update complete. Rebooting");
+  publish(snapshot);
+  delay(1500);
+  ESP.restart();
 }
 
 }  // namespace
@@ -150,7 +208,16 @@ const char* targetName(UpdateTarget target) {
 void otaManagerBegin() {
   snapshotMutex = xSemaphoreCreateMutex();
   commandQueue = xQueueCreate(2, sizeof(Command));
-  copyText(current.currentVersion, sizeof(current.currentVersion), kFirmwareVersion);
+  copyText(installedVersion, sizeof(installedVersion), kFirmwareVersion);
+  preferencesReady = otaPreferences.begin("hu7-ota", false);
+  if (preferencesReady) {
+    char savedVersion[sizeof(installedVersion)]{};
+    otaPreferences.getString("version", savedVersion, sizeof(savedVersion));
+    if (savedVersion[0] != '\0' && compareVersion(savedVersion, installedVersion) >= 0) {
+      copyText(installedVersion, sizeof(installedVersion), savedVersion);
+    }
+  }
+  copyText(current.currentVersion, sizeof(current.currentVersion), installedVersion);
   copyText(current.serverStatus, sizeof(current.serverStatus), "Disconnected");
   copyText(current.targetStatus, sizeof(current.targetStatus), "Select target");
   copyText(current.message, sizeof(current.message), "Select update target");
@@ -158,6 +225,7 @@ void otaManagerBegin() {
 }
 
 void otaManagerSelectTarget(UpdateTarget target) {
+  manifestReady = false;
   Snapshot snapshot = readCurrent();
   snapshot.selectedTarget = target;
   snapshot.state = OtaState::Idle;
@@ -167,7 +235,7 @@ void otaManagerSelectTarget(UpdateTarget target) {
   snapshot.latestVersion[0] = '\0';
   snapshot.packageTarget[0] = '\0';
   copyText(snapshot.currentVersion, sizeof(snapshot.currentVersion),
-           target == UpdateTarget::HU7 ? kFirmwareVersion : "-");
+           target == UpdateTarget::HU7 ? installedVersion : "-");
   copyText(snapshot.targetStatus, sizeof(snapshot.targetStatus),
            target == UpdateTarget::None ? "Select target" :
            target == UpdateTarget::HU7 ? "Ready" : "Not implemented");
@@ -184,6 +252,14 @@ bool otaManagerRequestCheck() {
   return xQueueSend(commandQueue, &command, 0) == pdTRUE;
 }
 
+bool otaManagerRequestUpdate() {
+  if (commandQueue == nullptr) return false;
+  const Snapshot snapshot = readCurrent();
+  if (!snapshot.updateAvailable || snapshot.selectedTarget != UpdateTarget::HU7) return false;
+  const Command command{CommandType::Update, snapshot.selectedTarget};
+  return xQueueSend(commandQueue, &command, 0) == pdTRUE;
+}
+
 bool otaManagerGetSnapshot(Snapshot& snapshot) {
   if (snapshotMutex == nullptr) return false;
   snapshot = readCurrent();
@@ -194,9 +270,12 @@ void otaManagerTask(void* parameter) {
   (void)parameter;
   Command command{};
   for (;;) {
-    if (xQueueReceive(commandQueue, &command, portMAX_DELAY) == pdTRUE &&
-        command.type == CommandType::Check) {
-      checkLatest(command.target);
+    if (xQueueReceive(commandQueue, &command, portMAX_DELAY) == pdTRUE) {
+      if (command.type == CommandType::Check) {
+        checkLatest(command.target);
+      } else if (command.type == CommandType::Update) {
+        installAvailableUpdate(command.target);
+      }
     }
   }
 }
