@@ -58,7 +58,12 @@ void addCardImage(lv_obj_t* card, const void* source) {
 
   lv_obj_t* image = addImage(card, source);
   if (image == nullptr) return;
-  lv_obj_set_size(image, lv_obj_get_width(card), lv_obj_get_height(card));
+  lv_obj_update_layout(card);
+  const lv_coord_t cardWidth = lv_obj_get_width(card);
+  const lv_coord_t cardHeight = lv_obj_get_height(card);
+  if (cardWidth > 0 && cardHeight > 0) {
+    lv_obj_set_size(image, cardWidth, cardHeight);
+  }
   lv_obj_center(image);
   lv_obj_move_background(image);
 }
