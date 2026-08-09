@@ -1,4 +1,5 @@
 #include "HeadUnitHmi.h"
+#include "DynamicImageUi.h"
 
 #include <Arduino.h>
 
@@ -527,6 +528,8 @@ static void loadScreen(lv_obj_t** screen, lv_scr_load_anim_t anim, void (*init)(
 void headUnitHmiBegin() {
   if (displayDriverLock(-1)) {
     ui_init();
+    dynamicImageUiBegin();
+    lv_disp_load_scr(ui_Main);
     bindMkbdEvents();
     bindWifiEvents();
     bindNavigationSymbols();

@@ -9,6 +9,12 @@ const uint8_t GDS_PIN_CAN_TX = 20;
 const uint8_t GDS_PIN_CAN_RX = 19;
 const uint8_t GDS_IO_CAN_SELECT = 5;
 
+// Waveshare ESP32-S3-Touch-LCD-7B TF card (1-bit SDMMC)
+const uint8_t GDS_PIN_SD_CLK = 12;
+const uint8_t GDS_PIN_SD_CMD = 11;
+const uint8_t GDS_PIN_SD_D0 = 13;
+const uint8_t GDS_IO_SD_SELECT = 4;
+
 const uint16_t GDS_TFT_WIDTH = 1024;
 const uint16_t GDS_TFT_HEIGHT = 600;
 const uint8_t GDS_TFT_ROTATION = 0;

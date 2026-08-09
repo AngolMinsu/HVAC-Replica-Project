@@ -6,6 +6,7 @@
 #include "../can/CanDriver.h"
 #include "../driver/DisplayDriver.h"
 #include "../ota/OtaManager.h"
+#include "../storage/StorageManager.h"
 #include "../task/task10ms/can/CanRxTask.h"
 #include "../task/task10ms/input/InputTask.h"
 #include "../task/task20ms/ui/UiTask.h"
@@ -25,6 +26,7 @@ void headUnitAppBegin() {
     }
   }
 
+  storageManagerBegin();
   wifiManagerBegin();
   hu7::ota::otaManagerBegin();
   headUnitHmiBegin();
