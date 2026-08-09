@@ -18,12 +18,38 @@ struct Command {
 
 QueueHandle_t commandQueue = nullptr;
 SemaphoreHandle_t snapshotMutex = nullptr;
+portMUX_TYPE commandMux = portMUX_INITIALIZER_UNLOCKED;
+bool commandActive = false;
+bool taskReady = false;
 Snapshot current{};
 Manifest availableManifest{};
 bool manifestReady = false;
 Preferences otaPreferences;
 bool preferencesReady = false;
 char installedVersion[24]{};
+
+bool reserveCommand() {
+  bool reserved = false;
+  portENTER_CRITICAL(&commandMux);
+  if (taskReady && !commandActive) {
+    commandActive = true;
+    reserved = true;
+  }
+  portEXIT_CRITICAL(&commandMux);
+  return reserved;
+}
+
+void releaseCommand() {
+  portENTER_CRITICAL(&commandMux);
+  commandActive = false;
+  portEXIT_CRITICAL(&commandMux);
+}
+
+void setTaskReady(bool ready) {
+  portENTER_CRITICAL(&commandMux);
+  taskReady = ready;
+  portEXIT_CRITICAL(&commandMux);
+}
 
 void copyText(char* output, size_t outputSize, const char* value) {
   snprintf(output, outputSize, "%s", value != nullptr ? value : "-");
@@ -207,7 +233,9 @@ const char* targetName(UpdateTarget target) {
 
 void otaManagerBegin() {
   snapshotMutex = xSemaphoreCreateMutex();
-  commandQueue = xQueueCreate(2, sizeof(Command));
+  commandQueue = xQueueCreate(1, sizeof(Command));
+  setTaskReady(false);
+  releaseCommand();
   copyText(installedVersion, sizeof(installedVersion), kFirmwareVersion);
   preferencesReady = otaPreferences.begin("hu7-ota", false);
   if (preferencesReady) {
@@ -244,16 +272,30 @@ void otaManagerSelectTarget(UpdateTarget target) {
 bool otaManagerRequestCheck() {
   if (commandQueue == nullptr) return false;
   const Snapshot snapshot = readCurrent();
+  if (snapshot.selectedTarget != UpdateTarget::HU7 || !reserveCommand()) return false;
   const Command command{CommandType::Check, snapshot.selectedTarget};
-  return xQueueSend(commandQueue, &command, 0) == pdTRUE;
+  if (xQueueSend(commandQueue, &command, 0) == pdTRUE) return true;
+  releaseCommand();
+  return false;
 }
 
 bool otaManagerRequestUpdate() {
   if (commandQueue == nullptr) return false;
   const Snapshot snapshot = readCurrent();
   if (!snapshot.updateAvailable || snapshot.selectedTarget != UpdateTarget::HU7) return false;
+  if (!reserveCommand()) return false;
   const Command command{CommandType::Update, snapshot.selectedTarget};
-  return xQueueSend(commandQueue, &command, 0) == pdTRUE;
+  if (xQueueSend(commandQueue, &command, 0) == pdTRUE) return true;
+  releaseCommand();
+  return false;
+}
+
+bool otaManagerReady() {
+  bool ready = false;
+  portENTER_CRITICAL(&commandMux);
+  ready = taskReady;
+  portEXIT_CRITICAL(&commandMux);
+  return ready;
 }
 
 bool otaManagerGetSnapshot(Snapshot& snapshot) {
@@ -264,6 +306,7 @@ bool otaManagerGetSnapshot(Snapshot& snapshot) {
 
 void otaManagerTask(void* parameter) {
   (void)parameter;
+  setTaskReady(true);
   Command command{};
   for (;;) {
     if (xQueueReceive(commandQueue, &command, portMAX_DELAY) == pdTRUE) {
@@ -272,6 +315,7 @@ void otaManagerTask(void* parameter) {
       } else if (command.type == CommandType::Update) {
         installAvailableUpdate(command.target);
       }
+      releaseCommand();
     }
   }
 }

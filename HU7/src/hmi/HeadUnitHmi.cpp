@@ -311,30 +311,46 @@ static void refreshOtaUi(const hu7::ota::Snapshot& snapshot) {
   if (ui_ButtonCancel != NULL) lv_obj_add_flag(ui_ButtonCancel, LV_OBJ_FLAG_HIDDEN);
 }
 
+static hu7::ota::UpdateTarget selectedOtaTargetFromUi(lv_obj_t* dropdown) {
+  if (dropdown == NULL) return hu7::ota::UpdateTarget::None;
+  const uint16_t selected = lv_dropdown_get_selected(dropdown);
+  if (selected <= static_cast<uint16_t>(hu7::ota::UpdateTarget::BMS)) {
+    return static_cast<hu7::ota::UpdateTarget>(selected);
+  }
+  return hu7::ota::UpdateTarget::None;
+}
+
 static void onOtaTargetSelection(lv_event_t* event) {
   if (lv_event_get_code(event) != LV_EVENT_VALUE_CHANGED) return;
-  const uint16_t selected = lv_dropdown_get_selected(ui_DropdownTarget);
-  hu7::ota::UpdateTarget target = hu7::ota::UpdateTarget::None;
-  if (selected <= static_cast<uint16_t>(hu7::ota::UpdateTarget::BMS)) {
-    target = static_cast<hu7::ota::UpdateTarget>(selected);
-  }
-  hu7::ota::otaManagerSelectTarget(target);
+  hu7::ota::otaManagerSelectTarget(
+      selectedOtaTargetFromUi(static_cast<lv_obj_t*>(lv_event_get_target(event))));
+  hu7::ota::Snapshot snapshot{};
+  if (hu7::ota::otaManagerGetSnapshot(snapshot)) refreshOtaUi(snapshot);
 }
 
 static void onOtaCheck(lv_event_t* event) {
   if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
-  if (!hu7::ota::otaManagerRequestCheck()) {
-    setTextIfReady(ui_TextErr, "OTA request queue is busy");
+  hu7::ota::otaManagerSelectTarget(selectedOtaTargetFromUi(ui_DropdownTarget));
+  if (hu7::ota::otaManagerRequestCheck()) {
+    setDisabled(ui_ButtonRefresh, true);
+    setTextIfReady(ui_TextErr, "OTA request queued");
+  } else {
+    setTextIfReady(ui_TextErr, hu7::ota::otaManagerReady()
+                                  ? "OTA request already running"
+                                  : "OTA task unavailable");
   }
 }
-
 static void onOtaUpdate(lv_event_t* event) {
   if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
-  if (!hu7::ota::otaManagerRequestUpdate()) {
+  if (hu7::ota::otaManagerRequestUpdate()) {
+    setDisabled(ui_ButtonUpdate, true);
+    setTextIfReady(ui_TextErr, "OTA update queued");
+  } else if (!hu7::ota::otaManagerReady()) {
+    setTextIfReady(ui_TextErr, "OTA task unavailable");
+  } else {
     setTextIfReady(ui_TextErr, "Check update again");
   }
 }
-
 static void onOpenSettingConnect(lv_event_t* event) {
   if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
   _ui_screen_change(&ui_SettingConnect, LV_SCR_LOAD_ANIM_NONE, 0, 0, ui_SettingConnect_screen_init);

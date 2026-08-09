@@ -33,7 +33,11 @@ void headUnitAppBegin() {
   canDriverBegin();
 
   xTaskCreatePinnedToCore(headUnitCanRxTask, "CAN_RX", 4096, nullptr, 3, nullptr, 0);
-  xTaskCreatePinnedToCore(hu7::ota::otaManagerTask, "OTA", 8192, nullptr, 1, nullptr, 0);
+  const BaseType_t otaTaskResult =
+      xTaskCreatePinnedToCore(hu7::ota::otaManagerTask, "OTA", 8192, nullptr, 1, nullptr, 0);
+  if (otaTaskResult != pdPASS) {
+    Serial.printf("OTA task creation failed, free heap=%u bytes\n", ESP.getFreeHeap());
+  }
   xTaskCreatePinnedToCore(headUnitInputTask, "INPUT", 4096, nullptr, 2, nullptr, 1);
   xTaskCreatePinnedToCore(headUnitUiTask, "UI", 4096, nullptr, 2, nullptr, 1);
 
