@@ -34,6 +34,16 @@ static lv_obj_t* otaProgressOwner = NULL;
 static lv_obj_t* otaInstallProgressBar = NULL;
 static lv_obj_t* otaInstallProgressLabel = NULL;
 static lv_obj_t* otaInstallProgressPercent = NULL;
+static lv_obj_t* otaPackageOwner = NULL;
+static lv_obj_t* otaPackageButton = NULL;
+static lv_obj_t* otaPackageModal = NULL;
+static lv_obj_t* otaPackageDropdown = NULL;
+static lv_obj_t* otaPackageDetail = NULL;
+static lv_obj_t* otaPackageMessage = NULL;
+static lv_obj_t* otaPackageDeleteLabel = NULL;
+static size_t otaPackageUiCount = 0;
+static int otaPackageDeleteConfirm = -1;
+static uint32_t otaPackageDeleteConfirmMs = 0;
 static HeadUnitWifiNetwork wifiUiNetworks[16] = {};
 static size_t wifiUiNetworkCount = 0;
 
@@ -53,6 +63,7 @@ static lv_obj_t* valuePsgControl = NULL;
 
 static void refreshHvacInfoLabels();
 static void refreshInfoModeLabels();
+static void refreshOtaUi(const hu7::ota::Snapshot& snapshot);
 
 static const char* windModeToText(uint8_t value) {
   switch (value) {
@@ -267,7 +278,205 @@ static void bindNavigationSymbols() {
   for (lv_obj_t* button : homeButtons) addButtonSymbol(button, LV_SYMBOL_HOME);
 }
 
+static void refreshStoredPackageOptions() {
+  if (otaPackageDropdown == NULL) return;
+  otaPackageUiCount = hu7::ota::otaManagerRefreshStoredPackages();
+  static char options[3072];
+  size_t used = snprintf(options, sizeof(options), "%s",
+                         otaPackageUiCount == 0 ? "No SD packages" : "Select SD package");
+  for (size_t index = 0; index < otaPackageUiCount && used < sizeof(options); ++index) {
+    hu7::ota::StoredPackage package{};
+    if (!hu7::ota::otaManagerGetStoredPackage(index, package)) continue;
+    const char* version = package.version[0] ? package.version : "Unknown version";
+    const int written = snprintf(options + used, sizeof(options) - used,
+                                 "\n%s | %s | %lu KB%s", hu7::ota::targetName(package.target),
+                                 version, static_cast<unsigned long>((package.size + 1023) / 1024),
+                                 package.selected ? " | SELECTED" : package.validImage ? "" : " | INVALID");
+    if (written < 0 || static_cast<size_t>(written) >= sizeof(options) - used) break;
+    used += static_cast<size_t>(written);
+  }
+  lv_dropdown_set_options(otaPackageDropdown, options);
+  lv_dropdown_set_selected(otaPackageDropdown, 0);
+  otaPackageDeleteConfirm = -1;
+  if (otaPackageDeleteLabel != NULL) lv_label_set_text(otaPackageDeleteLabel, "Delete");
+  setTextIfReady(otaPackageDetail, otaPackageUiCount == 0
+                                      ? "SD card has no HU7/MKBD .bin packages"
+                                      : "Select a package to view details");
+}
+
+static bool selectedStoredPackageIndex(size_t& index) {
+  if (otaPackageDropdown == NULL) return false;
+  const uint16_t selected = lv_dropdown_get_selected(otaPackageDropdown);
+  if (selected == 0 || selected > otaPackageUiCount) return false;
+  index = selected - 1;
+  return true;
+}
+
+static void refreshStoredPackageDetail() {
+  size_t index = 0;
+  hu7::ota::StoredPackage package{};
+  if (!selectedStoredPackageIndex(index) || !hu7::ota::otaManagerGetStoredPackage(index, package)) {
+    setTextIfReady(otaPackageDetail, "Select a package to view details");
+    return;
+  }
+  char detail[256];
+  snprintf(detail, sizeof(detail),
+           "Target: %s    Version: %s    Size: %lu bytes\nFile: %s\nImage: %s%s",
+           hu7::ota::targetName(package.target), package.version[0] ? package.version : "Unknown",
+           static_cast<unsigned long>(package.size), package.fileName,
+           package.validImage ? "Valid" : "Invalid ESP32 application",
+           package.selected ? "    [SELECTED]" : "");
+  setTextIfReady(otaPackageDetail, detail);
+}
+
+static void onStoredPackageDropdown(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_VALUE_CHANGED) return;
+  otaPackageDeleteConfirm = -1;
+  if (otaPackageDeleteLabel != NULL) lv_label_set_text(otaPackageDeleteLabel, "Delete");
+  setTextIfReady(otaPackageMessage, "");
+  refreshStoredPackageDetail();
+}
+
+static void onStoredPackageRefresh(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  refreshStoredPackageOptions();
+  setTextIfReady(otaPackageMessage, "SD package list refreshed");
+}
+
+static void onStoredPackageUse(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  size_t index = 0;
+  if (!selectedStoredPackageIndex(index)) {
+    setTextIfReady(otaPackageMessage, "Select an SD package");
+    return;
+  }
+  setTextIfReady(otaPackageMessage, "Verifying SHA-256...");
+  char error[96]{};
+  if (!hu7::ota::otaManagerSelectStoredPackage(index, error, sizeof(error))) {
+    setTextIfReady(otaPackageMessage, error);
+    return;
+  }
+  hu7::ota::Snapshot snapshot{};
+  if (hu7::ota::otaManagerGetSnapshot(snapshot)) {
+    lv_dropdown_set_selected(ui_DropdownTarget, static_cast<uint16_t>(snapshot.selectedTarget));
+    refreshOtaUi(snapshot);
+  }
+  refreshStoredPackageOptions();
+  setTextIfReady(otaPackageMessage, "Package selected. Press Install");
+}
+
+static void onStoredPackageDelete(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
+  size_t index = 0;
+  if (!selectedStoredPackageIndex(index)) {
+    setTextIfReady(otaPackageMessage, "Select an SD package");
+    return;
+  }
+  if (otaPackageDeleteConfirm != static_cast<int>(index) ||
+      millis() - otaPackageDeleteConfirmMs > 4000) {
+    otaPackageDeleteConfirm = static_cast<int>(index);
+    otaPackageDeleteConfirmMs = millis();
+    if (otaPackageDeleteLabel != NULL) lv_label_set_text(otaPackageDeleteLabel, "Confirm");
+    setTextIfReady(otaPackageMessage, "Press Confirm within 4 seconds to delete");
+    return;
+  }
+  char error[96]{};
+  if (!hu7::ota::otaManagerDeleteStoredPackage(index, error, sizeof(error))) {
+    setTextIfReady(otaPackageMessage, error);
+    return;
+  }
+  hu7::ota::Snapshot snapshot{};
+  if (hu7::ota::otaManagerGetSnapshot(snapshot)) refreshOtaUi(snapshot);
+  refreshStoredPackageOptions();
+  setTextIfReady(otaPackageMessage, "SD package deleted");
+}
+
+static void onStoredPackageClose(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED || otaPackageModal == NULL) return;
+  lv_obj_add_flag(otaPackageModal, LV_OBJ_FLAG_HIDDEN);
+}
+
+static void onStoredPackageOpen(lv_event_t* event) {
+  if (lv_event_get_code(event) != LV_EVENT_CLICKED || otaPackageModal == NULL) return;
+  refreshStoredPackageOptions();
+  setTextIfReady(otaPackageMessage, "");
+  lv_obj_clear_flag(otaPackageModal, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_foreground(otaPackageModal);
+}
+
+static lv_obj_t* createModalButton(lv_obj_t* parent, const char* text, int16_t x,
+                                   lv_event_cb_t callback, lv_obj_t** labelOutput = NULL) {
+  lv_obj_t* button = lv_btn_create(parent);
+  lv_obj_set_size(button, 140, 42);
+  lv_obj_set_x(button, x);
+  lv_obj_set_y(button, 112);
+  lv_obj_set_align(button, LV_ALIGN_CENTER);
+  lv_obj_add_event_cb(button, callback, LV_EVENT_CLICKED, NULL);
+  lv_obj_t* label = lv_label_create(button);
+  lv_label_set_text(label, text);
+  lv_obj_center(label);
+  if (labelOutput != NULL) *labelOutput = label;
+  return button;
+}
+
+static void ensureStoredPackageUi() {
+  if (ui_SettingConnect == NULL || ui_PanelInfo3 == NULL || otaPackageOwner == ui_SettingConnect) return;
+  otaPackageOwner = ui_SettingConnect;
+
+  otaPackageButton = lv_btn_create(ui_PanelInfo3);
+  lv_obj_set_size(otaPackageButton, 170, 38);
+  lv_obj_set_x(otaPackageButton, 0);
+  lv_obj_set_y(otaPackageButton, 145);
+  lv_obj_set_align(otaPackageButton, LV_ALIGN_CENTER);
+  lv_obj_add_event_cb(otaPackageButton, onStoredPackageOpen, LV_EVENT_CLICKED, NULL);
+  lv_obj_t* buttonLabel = lv_label_create(otaPackageButton);
+  lv_label_set_text(buttonLabel, "SD Packages");
+  lv_obj_center(buttonLabel);
+
+  otaPackageModal = lv_obj_create(ui_SettingConnect);
+  lv_obj_set_size(otaPackageModal, 820, 330);
+  lv_obj_set_align(otaPackageModal, LV_ALIGN_CENTER);
+  lv_obj_set_style_bg_color(otaPackageModal, lv_color_hex(0x202128), 0);
+  lv_obj_set_style_bg_opa(otaPackageModal, LV_OPA_COVER, 0);
+  lv_obj_set_style_border_color(otaPackageModal, lv_color_hex(0x2A9DF4), 0);
+  lv_obj_set_style_border_width(otaPackageModal, 2, 0);
+  lv_obj_clear_flag(otaPackageModal, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t* title = lv_label_create(otaPackageModal);
+  lv_label_set_text(title, "SD Firmware Packages");
+  lv_obj_set_x(title, -285);
+  lv_obj_set_y(title, -135);
+  lv_obj_set_align(title, LV_ALIGN_CENTER);
+
+  otaPackageDropdown = lv_dropdown_create(otaPackageModal);
+  lv_obj_set_size(otaPackageDropdown, 700, 44);
+  lv_obj_set_y(otaPackageDropdown, -88);
+  lv_obj_set_align(otaPackageDropdown, LV_ALIGN_CENTER);
+  lv_obj_add_event_cb(otaPackageDropdown, onStoredPackageDropdown, LV_EVENT_VALUE_CHANGED, NULL);
+
+  otaPackageDetail = lv_label_create(otaPackageModal);
+  lv_obj_set_width(otaPackageDetail, 700);
+  lv_obj_set_y(otaPackageDetail, -20);
+  lv_obj_set_align(otaPackageDetail, LV_ALIGN_CENTER);
+  lv_label_set_long_mode(otaPackageDetail, LV_LABEL_LONG_DOT);
+  lv_label_set_text(otaPackageDetail, "Select a package to view details");
+
+  otaPackageMessage = lv_label_create(otaPackageModal);
+  lv_obj_set_width(otaPackageMessage, 700);
+  lv_obj_set_y(otaPackageMessage, 60);
+  lv_obj_set_align(otaPackageMessage, LV_ALIGN_CENTER);
+  lv_obj_set_style_text_color(otaPackageMessage, lv_color_hex(0x60B8FF), 0);
+  lv_obj_set_style_text_align(otaPackageMessage, LV_TEXT_ALIGN_CENTER, 0);
+  lv_label_set_text(otaPackageMessage, "");
+
+  createModalButton(otaPackageModal, "Use Package", -245, onStoredPackageUse);
+  createModalButton(otaPackageModal, "Delete", -80, onStoredPackageDelete, &otaPackageDeleteLabel);
+  createModalButton(otaPackageModal, "Refresh", 85, onStoredPackageRefresh);
+  createModalButton(otaPackageModal, "Close", 250, onStoredPackageClose);
+  lv_obj_add_flag(otaPackageModal, LV_OBJ_FLAG_HIDDEN);
+}
 static void ensureOtaProgressUi() {
+  ensureStoredPackageUi();
   if (ui_Container2 == NULL || otaProgressOwner == ui_Container2) return;
 
   otaProgressOwner = ui_Container2;
@@ -364,6 +573,7 @@ static void refreshOtaUi(const hu7::ota::Snapshot& snapshot) {
                     snapshot.state == hu7::ota::OtaState::Installing ||
                     snapshot.state == hu7::ota::OtaState::Rebooting;
   setDisabled(ui_DropdownTarget, busy);
+  setDisabled(otaPackageButton, busy);
   const bool otaTargetSupported = snapshot.selectedTarget == hu7::ota::UpdateTarget::HU7 ||
                                   snapshot.selectedTarget == hu7::ota::UpdateTarget::MKBD;
   setDisabled(ui_ButtonRefresh, busy || !otaTargetSupported);

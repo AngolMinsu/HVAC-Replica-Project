@@ -2,6 +2,11 @@
 
 HU7과 같은 Wi-Fi에 연결된 PC에서 실행한다.
 
+## 명세
+
+- [OTA 전체 명세](OTA_SPEC.md)
+- [HU7-MKBD CAN OTA 상세 명세](CAN_OTA_MKBD_SPEC.md)
+
 ## GUI 실행
 
 `start_ota_manager.bat`을 더블클릭한다.
@@ -22,6 +27,27 @@ GUI 사용 순서:
 6. HU7 Setting → Connect에서 Target을 선택하고 `Check Update`를 누른다.
 
 GUI가 펌웨어 복사, manifest 생성, 크기와 SHA-256 계산을 처리한다.
+
+### 서버 Binary 관리
+
+`Stored Binary Files` 표에는 target 폴더에 저장된 모든 `.bin`이 표시된다.
+
+- 행 선택: Target, Version, 경로, 크기, SHA-256을 등록 입력란에 불러온다.
+- `Set Active`: 선택한 파일을 해당 Target의 배포 Manifest로 지정한다.
+- `Delete Selected`: 확인 후 binary를 삭제한다. Active binary이면 Manifest도 함께 삭제한다.
+- `Refresh`: target 폴더를 다시 읽는다.
+- HU7/MKBD 등록 시 ESP32 application header `0xE9`를 검사한다.
+- `.merged.bin`, `.bootloader.bin`, `.partitions.bin`은 등록을 거부한다.
+
+### HU SD Package 관리
+
+HU7의 Setting → Connect → `SD Packages`에서 TF 카드에 저장된 package를 관리한다.
+
+- 저장 경로: `/firmware/HU7/HU7-<version>.bin`, `/firmware/MKBD/MKBD-<version>.bin`
+- `Use Package`: SHA-256을 다시 계산하고 Install 대상으로 선택한다.
+- `Delete`: 4초 안에 Confirm을 다시 눌러 파일을 삭제한다.
+- `Refresh`: TF 카드 package 목록을 다시 읽는다.
+- 잘못된 ESP32 image header는 `INVALID`로 표시하며 선택할 수 없다.
 
 ## CLI 실행
 

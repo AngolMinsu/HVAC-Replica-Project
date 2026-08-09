@@ -53,6 +53,13 @@ def load_manifest(target: str) -> tuple[dict[str, object] | None, str | None]:
     firmware_path = safe_child(target_dir, filename)
     if firmware_path is None or not firmware_path.is_file():
         return None, "firmware file not found"
+    if target in {"HU7", "MKBD"}:
+        try:
+            with firmware_path.open("rb") as firmware:
+                if firmware.read(1) != b"\xE9":
+                    return None, "invalid ESP32 application image"
+        except OSError:
+            return None, "firmware file not readable"
     digest = hashlib.sha256()
     with firmware_path.open("rb") as firmware:
         for block in iter(lambda: firmware.read(1024 * 1024), b""):

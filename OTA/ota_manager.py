@@ -29,6 +29,45 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def version_from_filename(target: str, path: Path) -> str:
+    prefix = f"{target}-"
+    if path.name.startswith(prefix) and path.name.lower().endswith(".bin"):
+        return path.name[len(prefix):-4]
+    return ""
+
+
+def binary_kind(path: Path) -> str:
+    try:
+        with path.open("rb") as firmware:
+            first_byte = firmware.read(1)
+    except OSError:
+        return "Unreadable"
+    return "ESP32 App" if first_byte == b"\xE9" else "Non-ESP32"
+
+
+def validate_firmware_file(target: str, path: Path) -> str | None:
+    if not path.is_file() or path.suffix.lower() != ".bin":
+        return "Select an existing .bin file."
+    lowered = path.name.lower()
+    if any(token in lowered for token in (".merged.bin", ".bootloader.bin", ".partitions.bin")):
+        return "Use the application .ino.bin, not merged/bootloader/partitions binary."
+    if target in {"HU7", "MKBD"} and binary_kind(path) != "ESP32 App":
+        return "HU7/MKBD requires an ESP32 application binary with 0xE9 image header."
+    return None
+
+
+def write_manifest(target: str, version: str, firmware: Path) -> None:
+    target_dir = FIRMWARE_ROOT / target
+    target_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = target_dir / "manifest.json"
+    manifest_temp = target_dir / ".manifest.json.tmp"
+    manifest = {"target": target, "version": version, "file": firmware.name}
+    manifest_temp.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    manifest_temp.replace(manifest_path)
+
 def lan_ipv4() -> str:
     probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -54,9 +93,10 @@ class OtaManagerApp(tk.Tk):
         self.http_server = None
         self.server_thread: threading.Thread | None = None
         self.log_queue: queue.Queue[str] = queue.Queue()
+        self.package_items: dict[str, tuple[str, Path]] = {}
 
         self.target_var = tk.StringVar(value="HU7")
-        self.version_var = tk.StringVar(value="0.5.0")
+        self.version_var = tk.StringVar(value="0.5.3")
         self.file_var = tk.StringVar()
         self.file_size_var = tk.StringVar(value="-")
         self.sha_var = tk.StringVar(value="-")
@@ -171,29 +211,34 @@ class OtaManagerApp(tk.Tk):
         ).grid(row=4, column=0, columnspan=2, sticky="w", pady=(14, 0))
 
     def build_package_list(self, parent: ttk.Frame) -> None:
-        panel = ttk.LabelFrame(parent, text=" Registered Packages ", style="Section.TLabelframe", padding=8)
+        panel = ttk.LabelFrame(parent, text=" Stored Binary Files ", style="Section.TLabelframe", padding=8)
         panel.grid(row=2, column=0, sticky="ew", pady=(12, 6))
         panel.columnconfigure(0, weight=1)
 
-        columns = ("target", "version", "file", "size", "sha256")
-        self.package_tree = ttk.Treeview(panel, columns=columns, show="headings", height=5)
+        columns = ("active", "target", "version", "file", "kind", "size", "sha256")
+        self.package_tree = ttk.Treeview(panel, columns=columns, show="headings", height=6, selectmode="browse")
         headings = {
-            "target": "Target", "version": "Version", "file": "File",
-            "size": "Size", "sha256": "SHA-256"
+            "active": "Active", "target": "Target", "version": "Version", "file": "File",
+            "kind": "Type", "size": "Size", "sha256": "SHA-256"
         }
-        widths = {"target": 80, "version": 100, "file": 220, "size": 100, "sha256": 420}
+        widths = {
+            "active": 55, "target": 70, "version": 90, "file": 210,
+            "kind": 95, "size": 85, "sha256": 360
+        }
         for column in columns:
             self.package_tree.heading(column, text=headings[column])
             self.package_tree.column(column, width=widths[column], anchor="w")
         self.package_tree.grid(row=0, column=0, sticky="ew")
+        self.package_tree.bind("<<TreeviewSelect>>", self.on_package_selected)
         scrollbar = ttk.Scrollbar(panel, orient=tk.VERTICAL, command=self.package_tree.yview)
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.package_tree.configure(yscrollcommand=scrollbar.set)
 
-        ttk.Button(panel, text="Refresh", command=self.refresh_packages).grid(
-            row=1, column=0, sticky="e", pady=(6, 0)
-        )
-
+        button_row = ttk.Frame(panel)
+        button_row.grid(row=1, column=0, sticky="e", pady=(6, 0))
+        ttk.Button(button_row, text="Set Active", command=self.set_selected_active).grid(row=0, column=0, padx=(0, 6))
+        ttk.Button(button_row, text="Delete Selected", command=self.delete_selected_package).grid(row=0, column=1, padx=(0, 6))
+        ttk.Button(button_row, text="Refresh", command=self.refresh_packages).grid(row=0, column=2)
     def build_log_panel(self, parent: ttk.Frame) -> None:
         panel = ttk.LabelFrame(parent, text=" Server Log ", style="Section.TLabelframe", padding=8)
         panel.grid(row=3, column=0, sticky="nsew", pady=(6, 0))
@@ -231,57 +276,144 @@ class OtaManagerApp(tk.Tk):
         if not VERSION_PATTERN.fullmatch(version):
             messagebox.showerror("Invalid Version", "Use a version such as 1.0.1 or 1.0.1-beta.1.")
             return
-        if not source.is_file() or source.suffix.lower() != ".bin":
-            messagebox.showerror("Invalid Firmware", "Select an existing .bin file.")
+        validation_error = validate_firmware_file(target, source)
+        if validation_error:
+            messagebox.showerror("Invalid Firmware", validation_error)
             return
 
         target_dir = FIRMWARE_ROOT / target
         target_dir.mkdir(parents=True, exist_ok=True)
         destination = target_dir / f"{target}-{version}.bin"
         firmware_temp = target_dir / f".{destination.name}.tmp"
-        manifest_path = target_dir / "manifest.json"
-        manifest_temp = target_dir / ".manifest.json.tmp"
         try:
-            shutil.copyfile(source, firmware_temp)
-            firmware_temp.replace(destination)
+            if source.resolve() != destination.resolve():
+                shutil.copyfile(source, firmware_temp)
+                firmware_temp.replace(destination)
+            write_manifest(target, version, destination)
             digest = sha256_file(destination)
-            manifest = {"target": target, "version": version, "file": destination.name}
-            manifest_temp.write_text(
-                json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8"
-            )
-            manifest_temp.replace(manifest_path)
         except OSError as error:
             firmware_temp.unlink(missing_ok=True)
-            manifest_temp.unlink(missing_ok=True)
             messagebox.showerror("Registration Failed", str(error))
             return
 
+        self.file_var.set(str(destination))
         self.file_size_var.set(f"{destination.stat().st_size:,} bytes")
         self.sha_var.set(digest)
-        self.queue_log(f"Registered {target} {version}: {destination.name}")
+        self.queue_log(f"Registered and activated {target} {version}: {destination.name}")
         self.refresh_packages()
-        messagebox.showinfo("Registered", f"{target} {version} firmware registered.")
-
+        messagebox.showinfo("Registered", f"{target} {version} firmware registered and activated.")
     def refresh_packages(self) -> None:
         for item in self.package_tree.get_children():
             self.package_tree.delete(item)
-        for target in sorted(VALID_TARGETS):
-            manifest_path = FIRMWARE_ROOT / target / "manifest.json"
-            if not manifest_path.is_file():
-                continue
-            try:
-                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-                firmware = FIRMWARE_ROOT / target / str(manifest["file"])
-                size = firmware.stat().st_size
-                digest = sha256_file(firmware)
-                self.package_tree.insert(
-                    "", tk.END,
-                    values=(target, manifest["version"], firmware.name, f"{size:,}", digest)
-                )
-            except (OSError, KeyError, json.JSONDecodeError) as error:
-                self.package_tree.insert("", tk.END, values=(target, "INVALID", str(error), "-", "-"))
+        self.package_items.clear()
 
+        for target in sorted(VALID_TARGETS):
+            target_dir = FIRMWARE_ROOT / target
+            manifest_path = target_dir / "manifest.json"
+            active_file = ""
+            active_version = ""
+            if manifest_path.is_file():
+                try:
+                    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    active_file = str(manifest.get("file", ""))
+                    active_version = str(manifest.get("version", ""))
+                except (OSError, json.JSONDecodeError):
+                    active_file = ""
+
+            if not target_dir.is_dir():
+                continue
+            for firmware in sorted(target_dir.glob("*.bin"), key=lambda item: item.name.lower()):
+                try:
+                    size = firmware.stat().st_size
+                    digest = sha256_file(firmware)
+                    is_active = firmware.name == active_file
+                    version = active_version if is_active else version_from_filename(target, firmware)
+                    item_id = self.package_tree.insert(
+                        "", tk.END,
+                        values=("YES" if is_active else "", target, version or "-", firmware.name,
+                                binary_kind(firmware), f"{size:,}", digest),
+                    )
+                    self.package_items[item_id] = (target, firmware)
+                except OSError as error:
+                    item_id = self.package_tree.insert(
+                        "", tk.END, values=("", target, "INVALID", firmware.name, "Unreadable", "-", str(error))
+                    )
+                    self.package_items[item_id] = (target, firmware)
+
+    def selected_package(self) -> tuple[str, Path] | None:
+        selection = self.package_tree.selection()
+        if not selection:
+            return None
+        return self.package_items.get(selection[0])
+
+    def on_package_selected(self, _event=None) -> None:
+        selected = self.selected_package()
+        if selected is None:
+            return
+        target, firmware = selected
+        version = version_from_filename(target, firmware)
+        values = self.package_tree.item(self.package_tree.selection()[0], "values")
+        if len(values) >= 3 and values[2] not in ("", "-", "INVALID"):
+            version = str(values[2])
+        self.target_var.set(target)
+        if version:
+            self.version_var.set(version)
+        self.file_var.set(str(firmware))
+        try:
+            self.file_size_var.set(f"{firmware.stat().st_size:,} bytes")
+            self.sha_var.set(sha256_file(firmware))
+        except OSError as error:
+            self.file_size_var.set("-")
+            self.sha_var.set(str(error))
+
+    def set_selected_active(self) -> None:
+        selected = self.selected_package()
+        if selected is None:
+            messagebox.showerror("No Selection", "Select a binary file first.")
+            return
+        target, firmware = selected
+        version = self.version_var.get().strip()
+        if not VERSION_PATTERN.fullmatch(version):
+            messagebox.showerror("Invalid Version", "Enter the version for the selected binary.")
+            return
+        validation_error = validate_firmware_file(target, firmware)
+        if validation_error:
+            messagebox.showerror("Invalid Firmware", validation_error)
+            return
+        try:
+            write_manifest(target, version, firmware)
+        except OSError as error:
+            messagebox.showerror("Activation Failed", str(error))
+            return
+        self.queue_log(f"Activated {target} {version}: {firmware.name}")
+        self.refresh_packages()
+
+    def delete_selected_package(self) -> None:
+        selected = self.selected_package()
+        if selected is None:
+            messagebox.showerror("No Selection", "Select a binary file first.")
+            return
+        target, firmware = selected
+        if not messagebox.askyesno(
+            "Delete Firmware", f"Delete {target}/{firmware.name}?\nThis cannot be undone."
+        ):
+            return
+        manifest_path = FIRMWARE_ROOT / target / "manifest.json"
+        try:
+            if manifest_path.is_file():
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                if manifest.get("file") == firmware.name:
+                    manifest_path.unlink()
+            firmware.unlink()
+        except (OSError, json.JSONDecodeError) as error:
+            messagebox.showerror("Delete Failed", str(error))
+            return
+        if Path(self.file_var.get()) == firmware:
+            self.file_var.set("")
+            self.file_size_var.set("-")
+            self.sha_var.set("-")
+        self.queue_log(f"Deleted {target}: {firmware.name}")
+        self.refresh_packages()
     def start_server(self) -> None:
         if self.http_server is not None:
             return

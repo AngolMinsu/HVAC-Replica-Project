@@ -1,4 +1,5 @@
 OTA_SPEC.md
 logs/ota-results.jsonl
 firmware/**/*.bin
-firmware/**/manifest.json
+firmware
+__pycahche__

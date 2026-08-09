@@ -34,6 +34,15 @@ struct Manifest {
   uint32_t size = 0;
 };
 
+struct StoredPackage {
+  UpdateTarget target = UpdateTarget::None;
+  char version[24]{};
+  char fileName[96]{};
+  char path[160]{};
+  uint32_t size = 0;
+  bool validImage = false;
+  bool selected = false;
+};
 struct Snapshot {
   uint32_t revision = 0;
   OtaState state = OtaState::Idle;

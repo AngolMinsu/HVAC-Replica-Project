@@ -2,6 +2,7 @@
 
 #include <Preferences.h>
 #include <WiFi.h>
+#include <mbedtls/sha256.h>
 
 #include "CanOtaTransport.h"
 #include "FirmwareIdentity.h"
@@ -41,6 +42,10 @@ bool stagedReady = false;
 Preferences otaPreferences;
 bool preferencesReady = false;
 char installedVersion[24]{};
+char stagedFirmwarePath[160]{};
+constexpr size_t kMaxStoredPackages = 24;
+StoredPackage storedPackages[kMaxStoredPackages]{};
+size_t storedPackageCount = 0;
 
 const StagingPaths* pathsFor(UpdateTarget target) {
   if (target == UpdateTarget::HU7) return &kHu7Paths;
@@ -85,6 +90,121 @@ void copyText(char* output, size_t outputSize, const char* value) {
   snprintf(output, outputSize, "%s", value != nullptr ? value : "-");
 }
 
+bool commandIsActive() {
+  bool active = false;
+  portENTER_CRITICAL(&commandMux);
+  active = commandActive;
+  portEXIT_CRITICAL(&commandMux);
+  return active;
+}
+
+void setErrorText(char* error, size_t errorSize, const char* message) {
+  if (error != nullptr && errorSize > 0) snprintf(error, errorSize, "%s", message);
+}
+
+const char* leafName(const char* path) {
+  if (path == nullptr) return "";
+  const char* slash = strrchr(path, '/');
+  return slash == nullptr ? path : slash + 1;
+}
+
+bool endsWith(const char* text, const char* suffix) {
+  if (text == nullptr || suffix == nullptr) return false;
+  const size_t textLength = strlen(text);
+  const size_t suffixLength = strlen(suffix);
+  return textLength >= suffixLength && strcmp(text + textLength - suffixLength, suffix) == 0;
+}
+
+bool versionFromFileName(UpdateTarget target, const char* fileName, char* version, size_t versionSize) {
+  const char* name = targetName(target);
+  const size_t prefixLength = strlen(name);
+  const size_t fileLength = strlen(fileName);
+  if (fileLength <= prefixLength + 5 || strncmp(fileName, name, prefixLength) != 0 ||
+      fileName[prefixLength] != '-' || !endsWith(fileName, ".bin")) return false;
+  const size_t length = fileLength - prefixLength - 1 - 4;
+  if (length == 0 || length >= versionSize) return false;
+  memcpy(version, fileName + prefixLength + 1, length);
+  version[length] = '\0';
+  return true;
+}
+
+bool fileHasEspImageMagic(const char* path) {
+  File file = storageManagerOpenFile(path, FILE_READ);
+  if (!file || file.isDirectory()) {
+    file.close();
+    return false;
+  }
+  const int firstByte = file.read();
+  file.close();
+  return firstByte == 0xE9;
+}
+
+bool sha256ForFile(const char* path, char output[65]) {
+  File file = storageManagerOpenFile(path, FILE_READ);
+  if (!file || file.isDirectory()) {
+    file.close();
+    return false;
+  }
+  mbedtls_sha256_context context{};
+  mbedtls_sha256_init(&context);
+  if (mbedtls_sha256_starts(&context, 0) != 0) {
+    mbedtls_sha256_free(&context);
+    file.close();
+    return false;
+  }
+  uint8_t buffer[4096];
+  bool valid = true;
+  while (file.available()) {
+    const size_t count = file.read(buffer, sizeof(buffer));
+    if (count == 0 || mbedtls_sha256_update(&context, buffer, count) != 0) {
+      valid = false;
+      break;
+    }
+    delay(1);
+  }
+  uint8_t digest[32]{};
+  if (valid && mbedtls_sha256_finish(&context, digest) != 0) valid = false;
+  mbedtls_sha256_free(&context);
+  file.close();
+  if (!valid) return false;
+  for (size_t index = 0; index < sizeof(digest); ++index) {
+    snprintf(output + index * 2, 3, "%02x", digest[index]);
+  }
+  return true;
+}
+
+void scanStoredTarget(UpdateTarget target, const char* directoryPath) {
+  File directory = storageManagerOpenFile(directoryPath, FILE_READ);
+  if (!directory || !directory.isDirectory()) {
+    directory.close();
+    return;
+  }
+  File entry = directory.openNextFile();
+  while (entry && storedPackageCount < kMaxStoredPackages) {
+    if (!entry.isDirectory()) {
+      const char* name = leafName(entry.name());
+      if (endsWith(name, ".bin")) {
+        StoredPackage package{};
+        package.target = target;
+        copyText(package.fileName, sizeof(package.fileName), name);
+        snprintf(package.path, sizeof(package.path), "%s/%s", directoryPath, name);
+        package.size = static_cast<uint32_t>(entry.size());
+        if (strcmp(package.path, stagedFirmwarePath) == 0 && stagedReady) {
+          copyText(package.version, sizeof(package.version), stagedManifest.version);
+          package.selected = true;
+        } else {
+          versionFromFileName(target, name, package.version, sizeof(package.version));
+        }
+        package.validImage = target != UpdateTarget::HU7 && target != UpdateTarget::MKBD
+                                 ? true : fileHasEspImageMagic(package.path);
+        storedPackages[storedPackageCount++] = package;
+      }
+    }
+    entry.close();
+    entry = directory.openNextFile();
+  }
+  directory.close();
+}
 void publish(const Snapshot& next) {
   if (snapshotMutex == nullptr) return;
   xSemaphoreTake(snapshotMutex, portMAX_DELAY);
@@ -121,19 +241,20 @@ int compareVersion(const char* left, const char* right) {
 }
 
 void clearStagedMetadata(bool removeFirmware) {
-  const UpdateTarget oldTarget = stagedTarget();
-  const StagingPaths* oldPaths = pathsFor(oldTarget);
+  char oldFirmwarePath[sizeof(stagedFirmwarePath)]{};
+  copyText(oldFirmwarePath, sizeof(oldFirmwarePath), stagedFirmwarePath);
   stagedReady = false;
   stagedManifest = {};
+  stagedFirmwarePath[0] = '\0';
   if (preferencesReady) {
     otaPreferences.remove("stageTgt");
     otaPreferences.remove("stageVer");
     otaPreferences.remove("stageSize");
     otaPreferences.remove("stageSha");
+    otaPreferences.remove("stageFile");
   }
-  if (removeFirmware && storageManagerIsReady() && oldPaths != nullptr) {
-    storageManagerRemoveFile(oldPaths->firmware);
-    storageManagerRemoveFile(oldPaths->temporary);
+  if (removeFirmware && storageManagerIsReady() && oldFirmwarePath[0] != '\0') {
+    storageManagerRemoveFile(oldFirmwarePath);
   }
 }
 
@@ -143,6 +264,7 @@ void persistStagedMetadata() {
   otaPreferences.putString("stageVer", stagedManifest.version);
   otaPreferences.putULong("stageSize", stagedManifest.size);
   otaPreferences.putString("stageSha", stagedManifest.sha256);
+  otaPreferences.putString("stageFile", stagedFirmwarePath);
 }
 
 void restoreStagedMetadata() {
@@ -152,19 +274,23 @@ void restoreStagedMetadata() {
   otaPreferences.getString("stageTgt", restored.target, sizeof(restored.target));
   otaPreferences.getString("stageVer", restored.version, sizeof(restored.version));
   otaPreferences.getString("stageSha", restored.sha256, sizeof(restored.sha256));
+  otaPreferences.getString("stageFile", stagedFirmwarePath, sizeof(stagedFirmwarePath));
   restored.size = otaPreferences.getULong("stageSize", 0);
   if (restored.target[0] == '\0' && restored.version[0] != '\0') {
     copyText(restored.target, sizeof(restored.target), "HU7");
   }
   const UpdateTarget target = targetFromName(restored.target);
   const StagingPaths* paths = pathsFor(target);
+  if (stagedFirmwarePath[0] == '\0' && paths != nullptr) {
+    copyText(stagedFirmwarePath, sizeof(stagedFirmwarePath), paths->firmware);
+  }
   const bool versionValid = target != UpdateTarget::HU7 || compareVersion(installedVersion, restored.version) < 0;
   const bool valid = paths != nullptr && restored.version[0] != '\0' && restored.sha256[0] != '\0' &&
-                     restored.size > 0 && storageManagerFileSize(paths->firmware) == restored.size && versionValid;
+                     restored.size > 0 && storageManagerFileSize(stagedFirmwarePath) == restored.size && versionValid;
   if (!valid) {
     stagedManifest = restored;
     stagedReady = target != UpdateTarget::None;
-    clearStagedMetadata(true);
+    clearStagedMetadata(false);
     return;
   }
 
@@ -275,7 +401,7 @@ void checkLatest(UpdateTarget target) {
   copyText(snapshot.packageTarget, sizeof(snapshot.packageTarget), manifest.target);
   snapshot.firmwareSize = manifest.size;
   if (compareVersion(runningVersion, manifest.version) >= 0) {
-    if (stagedTarget() == target) clearStagedMetadata(true);
+    if (stagedTarget() == target) clearStagedMetadata(false);
     snapshot.state = OtaState::Idle;
     snapshot.downloadProgress = 0;
     snapshot.updateAvailable = false;
@@ -336,7 +462,7 @@ void downloadAvailableUpdate(UpdateTarget target) {
     return;
   }
 
-  if (stagedReady && stagedTarget() != target) clearStagedMetadata(true);
+  if (stagedReady && stagedTarget() != target) clearStagedMetadata(false);
   snapshot.state = OtaState::Downloading;
   snapshot.downloadProgress = 0;
   snapshot.installProgress = 0;
@@ -347,7 +473,10 @@ void downloadAvailableUpdate(UpdateTarget target) {
 
   OtaHttpClient client;
   char error[96]{};
-  if (!client.downloadToFile(availableManifest, paths->temporary, paths->firmware,
+  char finalPath[sizeof(stagedFirmwarePath)]{};
+  snprintf(finalPath, sizeof(finalPath), "%s/%s-%s.bin", paths->directory,
+           targetName(target), availableManifest.version);
+  if (!client.downloadToFile(availableManifest, paths->temporary, finalPath,
                              downloadProgress, nullptr, error, sizeof(error))) {
     snapshot = readCurrent();
     fail(snapshot, error, WiFi.status() == WL_CONNECTED, true);
@@ -355,6 +484,7 @@ void downloadAvailableUpdate(UpdateTarget target) {
   }
 
   stagedManifest = availableManifest;
+  copyText(stagedFirmwarePath, sizeof(stagedFirmwarePath), finalPath);
   stagedReady = true;
   persistStagedMetadata();
   snapshot = readCurrent();
@@ -381,8 +511,8 @@ void installStagedUpdate(UpdateTarget target) {
 
   char error[96]{};
   const bool installed = target == UpdateTarget::HU7
-      ? installFirmwareFromFile(stagedManifest, paths->firmware, installProgress, nullptr, error, sizeof(error))
-      : canOtaInstallMkbd(paths->firmware, stagedManifest.size, stagedManifest.version,
+      ? installFirmwareFromFile(stagedManifest, stagedFirmwarePath, installProgress, nullptr, error, sizeof(error))
+      : canOtaInstallMkbd(stagedFirmwarePath, stagedManifest.size, stagedManifest.version,
                          installProgress, nullptr, error, sizeof(error));
   if (!installed) {
     snapshot = readCurrent();
@@ -393,7 +523,7 @@ void installStagedUpdate(UpdateTarget target) {
 
   char installedTargetVersion[24]{};
   copyText(installedTargetVersion, sizeof(installedTargetVersion), stagedManifest.version);
-  clearStagedMetadata(true);
+  clearStagedMetadata(false);
   snapshot = readCurrent();
   snapshot.installProgress = 100;
   snapshot.installReady = false;
@@ -434,6 +564,7 @@ void otaManagerBegin() {
   preferencesReady = otaPreferences.begin("hu7-ota", false);
   if (preferencesReady) otaPreferences.putString("version", installedVersion);
   restoreStagedMetadata();
+  otaManagerRefreshStoredPackages();
   copyText(current.currentVersion, sizeof(current.currentVersion), installedVersion);
   copyText(current.serverStatus, sizeof(current.serverStatus), "Disconnected");
   copyText(current.targetStatus, sizeof(current.targetStatus), "Select target");
@@ -512,6 +643,116 @@ bool otaManagerGetSnapshot(Snapshot& snapshot) {
   return true;
 }
 
+size_t otaManagerRefreshStoredPackages() {
+  if (!storageManagerIsReady() || commandIsActive()) return storedPackageCount;
+  storedPackageCount = 0;
+  storedPackages[0] = {};
+  scanStoredTarget(UpdateTarget::HU7, kHu7Paths.directory);
+  scanStoredTarget(UpdateTarget::MKBD, kMkbdPaths.directory);
+  return storedPackageCount;
+}
+
+size_t otaManagerGetStoredPackageCount() {
+  return storedPackageCount;
+}
+
+bool otaManagerGetStoredPackage(size_t index, StoredPackage& package) {
+  if (index >= storedPackageCount) return false;
+  package = storedPackages[index];
+  return true;
+}
+
+bool otaManagerSelectStoredPackage(size_t index, char* error, size_t errorSize) {
+  if (commandIsActive()) {
+    setErrorText(error, errorSize, "OTA action is running");
+    return false;
+  }
+  if (index >= storedPackageCount) {
+    setErrorText(error, errorSize, "Refresh SD package list");
+    return false;
+  }
+  const StoredPackage package = storedPackages[index];
+  if ((package.target != UpdateTarget::HU7 && package.target != UpdateTarget::MKBD) ||
+      package.version[0] == '\0') {
+    setErrorText(error, errorSize, "Package filename must be TARGET-version.bin");
+    return false;
+  }
+  if (!package.validImage) {
+    setErrorText(error, errorSize, "Invalid ESP32 application binary");
+    return false;
+  }
+  if (storageManagerFileSize(package.path) != package.size || package.size == 0) {
+    setErrorText(error, errorSize, "SD package file is unavailable");
+    return false;
+  }
+
+  char sha256[65]{};
+  if (!sha256ForFile(package.path, sha256)) {
+    setErrorText(error, errorSize, "SD package SHA-256 failed");
+    return false;
+  }
+
+  stagedManifest = {};
+  copyText(stagedManifest.target, sizeof(stagedManifest.target), targetName(package.target));
+  copyText(stagedManifest.version, sizeof(stagedManifest.version), package.version);
+  copyText(stagedManifest.file, sizeof(stagedManifest.file), package.fileName);
+  copyText(stagedManifest.sha256, sizeof(stagedManifest.sha256), sha256);
+  stagedManifest.size = package.size;
+  copyText(stagedFirmwarePath, sizeof(stagedFirmwarePath), package.path);
+  stagedReady = true;
+  manifestReady = false;
+  persistStagedMetadata();
+
+  Snapshot snapshot = readCurrent();
+  const UpdateTarget previousTarget = snapshot.selectedTarget;
+  snapshot.selectedTarget = package.target;
+  if (package.target == UpdateTarget::HU7) {
+    copyText(snapshot.currentVersion, sizeof(snapshot.currentVersion), installedVersion);
+  } else if (previousTarget != package.target) {
+    snapshot.currentVersion[0] = '\0';
+  }
+  applyStagedSnapshot(snapshot);
+  copyText(snapshot.targetStatus, sizeof(snapshot.targetStatus), "SD Package");
+  copyText(snapshot.message, sizeof(snapshot.message), "SD package selected. Press Install");
+  publish(snapshot);
+  otaManagerRefreshStoredPackages();
+  return true;
+}
+
+bool otaManagerDeleteStoredPackage(size_t index, char* error, size_t errorSize) {
+  if (commandIsActive()) {
+    setErrorText(error, errorSize, "OTA action is running");
+    return false;
+  }
+  if (index >= storedPackageCount) {
+    setErrorText(error, errorSize, "Refresh SD package list");
+    return false;
+  }
+  const StoredPackage package = storedPackages[index];
+  const bool deletingSelected = stagedReady && strcmp(package.path, stagedFirmwarePath) == 0;
+  if (deletingSelected) clearStagedMetadata(false);
+  if (!storageManagerRemoveFile(package.path)) {
+    setErrorText(error, errorSize, "SD package delete failed");
+    return false;
+  }
+
+  if (deletingSelected) {
+    Snapshot snapshot = readCurrent();
+    snapshot.state = OtaState::Idle;
+    snapshot.updateAvailable = false;
+    snapshot.installReady = false;
+    snapshot.downloadProgress = 0;
+    snapshot.installProgress = 0;
+    snapshot.firmwareSize = 0;
+    snapshot.latestVersion[0] = '\0';
+    snapshot.packageTarget[0] = '\0';
+    copyText(snapshot.targetStatus, sizeof(snapshot.targetStatus), "Ready");
+    copyText(snapshot.message, sizeof(snapshot.message), "SD package deleted");
+    publish(snapshot);
+  }
+  otaManagerRefreshStoredPackages();
+  return true;
+}
 void otaManagerTask(void* parameter) {
   (void)parameter;
   setTaskReady(true);
