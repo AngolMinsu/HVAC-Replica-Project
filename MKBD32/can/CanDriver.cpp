@@ -84,6 +84,8 @@ uint8_t canDriverBegin() {
       (gpio_num_t)GDS_PIN_TWAI_TX,
       (gpio_num_t)GDS_PIN_TWAI_RX,
       TWAI_MODE_NORMAL);
+  generalConfig.tx_queue_len = 16;
+  generalConfig.rx_queue_len = 64;
   twai_timing_config_t timingConfig = TWAI_TIMING_CONFIG_500KBITS();
   twai_filter_config_t filterConfig = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 

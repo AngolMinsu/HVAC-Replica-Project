@@ -7,6 +7,7 @@
 #include "CanHandler.h"
 #include "CanMonitor.h"
 #include "CanProtocol.h"
+#include "../ota/CanOtaReceiver.h"
 
 static uint8_t canTxCounter = 0;
 
@@ -26,6 +27,7 @@ static uint8_t sendPayload(uint16_t id, const CanPayload& payload) {
 }
 
 static uint8_t broadcastSignal(const SystemState& state, uint8_t signal) {
+  if (mkbdCanOtaActive()) return 0;
   CanPayload payload = canMakeStatusPayload(state, signal, canTxCounter++);
   return sendPayload(CAN_ID_HVAC_STATUS, payload);
 }
@@ -50,26 +52,33 @@ uint8_t mkbdCanServiceBegin() {
 }
 
 uint8_t mkbdCanServiceProcessReceive(SystemState& state) {
+  mkbdCanOtaTick();
+  uint8_t changedAny = 0;
   CanFrame rxFrame;
-  if (!canDriverReceive(rxFrame)) return 0;
+  for (uint8_t processed = 0; processed < 64 && canDriverReceive(rxFrame); ++processed) {
+    if (mkbdCanOtaHandleFrame(rxFrame)) continue;
+    canMonitorPrintFrame("RX", rxFrame);
+    if (mkbdCanOtaActive()) continue;
+    if (rxFrame.id != CAN_ID_CONTROL_REQUEST) {
+      Serial.println("CAN ERROR: UNKNOWN ID");
+      continue;
+    }
+    if (rxFrame.dlc != CAN_DLC) {
+      Serial.println("CAN ERROR: INVALID DLC");
+      continue;
+    }
 
-  canMonitorPrintFrame("RX", rxFrame);
-  if (rxFrame.id != CAN_ID_CONTROL_REQUEST) {
-    Serial.println("CAN ERROR: UNKNOWN ID");
-    return 0;
+    CanPayload request = canPayloadFromBytes(rxFrame.data);
+    CanPayload response;
+    SystemState before = state;
+    const uint8_t changed = canProcessControlRequest(state, request, response);
+    sendPayload(CAN_ID_CONTROL_RESPONSE, response);
+    if (changed) {
+      mkbdCanServiceBroadcastChanges(before, state);
+      changedAny = 1;
+    }
   }
-  if (rxFrame.dlc != CAN_DLC) {
-    Serial.println("CAN ERROR: INVALID DLC");
-    return 0;
-  }
-
-  CanPayload request = canPayloadFromBytes(rxFrame.data);
-  CanPayload response;
-  SystemState before = state;
-  uint8_t changed = canProcessControlRequest(state, request, response);
-  sendPayload(CAN_ID_CONTROL_RESPONSE, response);
-  if (changed) mkbdCanServiceBroadcastChanges(before, state);
-  return changed;
+  return changedAny;
 }
 
 uint8_t mkbdCanServiceBroadcastButtonMenu(uint8_t button, const SystemState& state) {

@@ -18,6 +18,7 @@
                 "C:\\Users\\djvmf\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8\\variants\\esp32s3",
                 "C:\\Users\\djvmf\\Documents\\Arduino\\libraries\\U8g2\\src",
                 "C:\\Users\\djvmf\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8\\libraries\\Wire\\src",
+                "C:\\Users\\djvmf\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8\\libraries\\Update\\src",
                 "C:\\Users\\djvmf\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8\\libraries\\SPI\\src",
                 "C:\\Users\\djvmf\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp-x32\\2601\\xtensa-esp-elf\\include\\c++\\14.2.0",
                 "C:\\Users\\djvmf\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp-x32\\2601\\xtensa-esp-elf\\include\\c++\\14.2.0\\xtensa-esp-elf\\esp32s3",
@@ -27,7 +28,7 @@
                 "C:\\Users\\djvmf\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp-x32\\2601\\xtensa-esp-elf\\include"
             ],
             "forcedInclude": [
-                "C:\\Users\\djvmf\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8\\cores\\esp32\\Arduino.h"
+                "E:\\030_Portfolio\\010_Arduino\\040_CAN\\HVAC Replica\\MKBD32\\build\\sketch\\test\\TestSupport\\Arduino.h"
             ],
             "cStandard": "c11",
             "cppStandard": "c++11",

@@ -11,6 +11,9 @@
 #include "can/CanHandler.cpp"
 #include "can/CanMonitor.cpp"
 #include "can/CanDriver.cpp"
+#ifdef ARDUINO
+#include "ota/CanOtaReceiver.cpp"
+#endif
 #include "can/MkbdCanService.cpp"
 #include "task/MkbdRtos.cpp"
 #include "task/task10ms/input/InputTask.cpp"
