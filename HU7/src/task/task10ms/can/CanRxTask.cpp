@@ -7,6 +7,7 @@
 #include "../../../can/CanMonitor.h"
 #include "../../../can/CanProtocol.h"
 #include "../../../hmi/HeadUnitHmi.h"
+#include "../../../ota/CanOtaTransport.h"
 
 void headUnitCanRxTask(void* parameter) {
   (void)parameter;
@@ -18,6 +19,10 @@ void headUnitCanRxTask(void* parameter) {
     CanFrame frame;
     while (canDriverReceive(frame)) {
       canMonitorPrintFrame("HU RX", frame);
+
+      if (hu7::ota::canOtaTransportHandleFrame(frame)) {
+        continue;
+      }
 
       if (frame.dlc != GDS_CAN_DLC) {
         Serial.println("HU RX DROP:DLC");

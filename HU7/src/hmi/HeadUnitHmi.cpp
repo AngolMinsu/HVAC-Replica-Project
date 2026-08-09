@@ -364,7 +364,9 @@ static void refreshOtaUi(const hu7::ota::Snapshot& snapshot) {
                     snapshot.state == hu7::ota::OtaState::Installing ||
                     snapshot.state == hu7::ota::OtaState::Rebooting;
   setDisabled(ui_DropdownTarget, busy);
-  setDisabled(ui_ButtonRefresh, busy || snapshot.selectedTarget != hu7::ota::UpdateTarget::HU7);
+  const bool otaTargetSupported = snapshot.selectedTarget == hu7::ota::UpdateTarget::HU7 ||
+                                  snapshot.selectedTarget == hu7::ota::UpdateTarget::MKBD;
+  setDisabled(ui_ButtonRefresh, busy || !otaTargetSupported);
   setDisabled(ui_ButtonUpdate, busy ||
                                       (!snapshot.updateAvailable && !snapshot.installReady));
   if (ui_ButtonCancel != NULL) lv_obj_add_flag(ui_ButtonCancel, LV_OBJ_FLAG_HIDDEN);
