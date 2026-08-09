@@ -211,11 +211,7 @@ void otaManagerBegin() {
   copyText(installedVersion, sizeof(installedVersion), kFirmwareVersion);
   preferencesReady = otaPreferences.begin("hu7-ota", false);
   if (preferencesReady) {
-    char savedVersion[sizeof(installedVersion)]{};
-    otaPreferences.getString("version", savedVersion, sizeof(savedVersion));
-    if (savedVersion[0] != '\0' && compareVersion(savedVersion, installedVersion) >= 0) {
-      copyText(installedVersion, sizeof(installedVersion), savedVersion);
-    }
+    otaPreferences.putString("version", installedVersion);
   }
   copyText(current.currentVersion, sizeof(current.currentVersion), installedVersion);
   copyText(current.serverStatus, sizeof(current.serverStatus), "Disconnected");
