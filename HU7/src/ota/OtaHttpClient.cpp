@@ -2,11 +2,11 @@
 
 #include <HTTPClient.h>
 #include <NetworkClient.h>
-#include <Update.h>
 #include <WiFiClient.h>
 #include <mbedtls/sha256.h>
 
 #include "OtaConfig.h"
+#include "../storage/StorageManager.h"
 
 namespace hu7::ota {
 namespace {
@@ -123,10 +123,16 @@ bool OtaHttpClient::getLatest(UpdateTarget target, Manifest& manifest,
   return true;
 }
 
-bool OtaHttpClient::downloadAndInstall(const Manifest& manifest,
-                                       OtaProgressCallback progressCallback,
-                                       void* progressContext,
-                                       char* error, size_t errorSize) {
+bool OtaHttpClient::downloadToFile(const Manifest& manifest, const char* temporaryPath,
+                                   const char* finalPath,
+                                   OtaProgressCallback progressCallback,
+                                   void* progressContext,
+                                   char* error, size_t errorSize) {
+  if (!storageManagerIsReady()) {
+    setError(error, errorSize, "SD card is unavailable");
+    return false;
+  }
+
   const String firmwareUrl = String(manifest.url).startsWith("http")
                                  ? String(manifest.url)
                                  : String(kServerBaseUrl) + manifest.url;
@@ -151,8 +157,12 @@ bool OtaHttpClient::downloadAndInstall(const Manifest& manifest,
     http.end();
     return false;
   }
-  if (!Update.begin(manifest.size, U_FLASH)) {
-    snprintf(error, errorSize, "OTA begin: %s", Update.errorString());
+
+  storageManagerRemoveFile(temporaryPath);
+  File output = storageManagerOpenFile(temporaryPath, FILE_WRITE);
+  if (!output || output.isDirectory()) {
+    setError(error, errorSize, "Staging file open failed");
+    output.close();
     http.end();
     return false;
   }
@@ -162,7 +172,8 @@ bool OtaHttpClient::downloadAndInstall(const Manifest& manifest,
   if (mbedtls_sha256_starts(&sha, 0) != 0) {
     setError(error, errorSize, "SHA-256 init failed");
     mbedtls_sha256_free(&sha);
-    Update.abort();
+    output.close();
+    storageManagerRemoveFile(temporaryPath);
     http.end();
     return false;
   }
@@ -185,8 +196,9 @@ bool OtaHttpClient::downloadAndInstall(const Manifest& manifest,
         failed = true;
         break;
       }
-      if (Update.write(buffer, static_cast<size_t>(bytesRead)) != static_cast<size_t>(bytesRead)) {
-        snprintf(error, errorSize, "OTA write: %s", Update.errorString());
+      if (output.write(buffer, static_cast<size_t>(bytesRead)) !=
+          static_cast<size_t>(bytesRead)) {
+        setError(error, errorSize, "SD firmware write failed");
         failed = true;
         break;
       }
@@ -219,23 +231,31 @@ bool OtaHttpClient::downloadAndInstall(const Manifest& manifest,
     failed = true;
   }
   mbedtls_sha256_free(&sha);
+  output.flush();
+  output.close();
   http.end();
-  if (failed) {
-    Update.abort();
-    return false;
-  }
 
   char digestText[65]{};
   for (size_t index = 0; index < sizeof(digest); ++index) {
     snprintf(digestText + index * 2, 3, "%02x", digest[index]);
   }
-  if (strcmp(digestText, manifest.sha256) != 0) {
+  if (!failed && strcmp(digestText, manifest.sha256) != 0) {
     setError(error, errorSize, "Firmware SHA-256 mismatch");
-    Update.abort();
+    failed = true;
+  }
+  if (!failed && storageManagerFileSize(temporaryPath) != manifest.size) {
+    setError(error, errorSize, "Staged firmware size mismatch");
+    failed = true;
+  }
+  if (failed) {
+    storageManagerRemoveFile(temporaryPath);
     return false;
   }
-  if (!Update.end(false) || !Update.isFinished()) {
-    snprintf(error, errorSize, "OTA finalize: %s", Update.errorString());
+
+  if (!storageManagerRemoveFile(finalPath) ||
+      !storageManagerRenameFile(temporaryPath, finalPath)) {
+    setError(error, errorSize, "Staged firmware finalize failed");
+    storageManagerRemoveFile(temporaryPath);
     return false;
   }
   return true;

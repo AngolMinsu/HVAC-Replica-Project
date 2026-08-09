@@ -19,6 +19,8 @@ enum class OtaState : uint8_t {
   UpdateAvailable,
   Downloading,
   Verifying,
+  ReadyToInstall,
+  Installing,
   Rebooting,
   Failed,
 };
@@ -43,8 +45,10 @@ struct Snapshot {
   char packageTarget[12]{};
   char message[96]{};
   uint32_t firmwareSize = 0;
-  uint8_t progress = 0;
+  uint8_t downloadProgress = 0;
+  uint8_t installProgress = 0;
   bool updateAvailable = false;
+  bool installReady = false;
 };
 
 const char* targetName(UpdateTarget target);

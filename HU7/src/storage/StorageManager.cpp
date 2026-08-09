@@ -113,6 +113,40 @@ bool storageManagerFileExists(const char* lvglPath) {
   return SD_MMC.exists(normalizePath(lvglPath));
 }
 
+uint64_t storageManagerFileSize(const char* path) {
+  if (!storageReady || path == nullptr) return 0;
+  File file = SD_MMC.open(normalizePath(path), FILE_READ);
+  if (!file || file.isDirectory()) {
+    file.close();
+    return 0;
+  }
+  const uint64_t size = file.size();
+  file.close();
+  return size;
+}
+
+bool storageManagerEnsureDirectory(const char* path) {
+  if (!storageReady || path == nullptr) return false;
+  const char* normalized = normalizePath(path);
+  return SD_MMC.exists(normalized) || SD_MMC.mkdir(normalized);
+}
+
+bool storageManagerRemoveFile(const char* path) {
+  if (!storageReady || path == nullptr) return false;
+  const char* normalized = normalizePath(path);
+  return !SD_MMC.exists(normalized) || SD_MMC.remove(normalized);
+}
+
+bool storageManagerRenameFile(const char* fromPath, const char* toPath) {
+  if (!storageReady || fromPath == nullptr || toPath == nullptr) return false;
+  return SD_MMC.rename(normalizePath(fromPath), normalizePath(toPath));
+}
+
+File storageManagerOpenFile(const char* path, const char* mode) {
+  if (!storageReady || path == nullptr || mode == nullptr) return File();
+  return SD_MMC.open(normalizePath(path), mode);
+}
+
 bool storageManagerLoadLvglImage(const char* lvglPath, lv_img_dsc_t* image,
                                  uint16_t targetWidth, uint16_t targetHeight) {
   static_assert(sizeof(lv_img_header_t) == 4, "Unexpected LVGL image header size");

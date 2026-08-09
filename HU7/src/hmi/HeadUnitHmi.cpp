@@ -30,6 +30,10 @@ static const char* lastPsgControl = "-";
 static uint32_t lastWifiRevision = UINT32_MAX;
 static uint32_t lastWifiNetworkRevision = UINT32_MAX;
 static uint32_t lastOtaRevision = UINT32_MAX;
+static lv_obj_t* otaProgressOwner = NULL;
+static lv_obj_t* otaInstallProgressBar = NULL;
+static lv_obj_t* otaInstallProgressLabel = NULL;
+static lv_obj_t* otaInstallProgressPercent = NULL;
 static HeadUnitWifiNetwork wifiUiNetworks[16] = {};
 static size_t wifiUiNetworkCount = 0;
 
@@ -263,6 +267,49 @@ static void bindNavigationSymbols() {
   for (lv_obj_t* button : homeButtons) addButtonSymbol(button, LV_SYMBOL_HOME);
 }
 
+static void ensureOtaProgressUi() {
+  if (ui_Container2 == NULL || otaProgressOwner == ui_Container2) return;
+
+  otaProgressOwner = ui_Container2;
+  lv_obj_set_height(ui_Container2, 310);
+  lv_obj_set_y(ui_Container2, 0);
+
+  setTextIfReady(ui_TextProgress, "Download");
+  lv_obj_set_x(ui_TextProgress, -140);
+  lv_obj_set_y(ui_TextProgress, -130);
+  lv_obj_set_y(ui_BarUpdateProgress, -105);
+  lv_obj_set_x(ui_TextUpdatePercent, 150);
+  lv_obj_set_y(ui_TextUpdatePercent, -130);
+
+  otaInstallProgressLabel = lv_label_create(ui_Container2);
+  lv_label_set_text(otaInstallProgressLabel, "Install");
+  lv_obj_set_x(otaInstallProgressLabel, -145);
+  lv_obj_set_y(otaInstallProgressLabel, -70);
+  lv_obj_set_align(otaInstallProgressLabel, LV_ALIGN_CENTER);
+
+  otaInstallProgressBar = lv_bar_create(ui_Container2);
+  lv_obj_set_width(otaInstallProgressBar, 350);
+  lv_obj_set_height(otaInstallProgressBar, 24);
+  lv_obj_set_x(otaInstallProgressBar, 0);
+  lv_obj_set_y(otaInstallProgressBar, -45);
+  lv_obj_set_align(otaInstallProgressBar, LV_ALIGN_CENTER);
+  lv_bar_set_range(otaInstallProgressBar, 0, 100);
+  lv_bar_set_value(otaInstallProgressBar, 0, LV_ANIM_OFF);
+
+  otaInstallProgressPercent = lv_label_create(ui_Container2);
+  lv_label_set_text(otaInstallProgressPercent, "0 %");
+  lv_obj_set_x(otaInstallProgressPercent, 150);
+  lv_obj_set_y(otaInstallProgressPercent, -70);
+  lv_obj_set_align(otaInstallProgressPercent, LV_ALIGN_CENTER);
+
+  lv_obj_set_y(ui_ButtonRefresh, 5);
+  lv_obj_set_y(ui_ButtonUpdate, 5);
+  lv_obj_set_y(ui_ButtonCancel, 5);
+  lv_obj_set_y(ui_TextUpdateStatus, 62);
+  lv_obj_set_y(ui_ValueUpdateStatus, 62);
+  lv_obj_set_y(ui_TextErr, 108);
+}
+
 static const char* otaStateText(hu7::ota::OtaState state) {
   switch (state) {
     case hu7::ota::OtaState::Connecting: return "Connecting";
@@ -270,6 +317,8 @@ static const char* otaStateText(hu7::ota::OtaState state) {
     case hu7::ota::OtaState::UpdateAvailable: return "Available";
     case hu7::ota::OtaState::Downloading: return "Downloading";
     case hu7::ota::OtaState::Verifying: return "Verifying";
+    case hu7::ota::OtaState::ReadyToInstall: return "Ready to Install";
+    case hu7::ota::OtaState::Installing: return "Installing";
     case hu7::ota::OtaState::Rebooting: return "Rebooting";
     case hu7::ota::OtaState::Failed: return "Failed";
     default: return "Idle";
@@ -277,6 +326,7 @@ static const char* otaStateText(hu7::ota::OtaState state) {
 }
 
 static void refreshOtaUi(const hu7::ota::Snapshot& snapshot) {
+  ensureOtaProgressUi();
   char valueText[32];
   setTextIfReady(ui_TextCurVer2, snapshot.currentVersion[0] ? snapshot.currentVersion : "-");
   setTextIfReady(ui_TextLatVer2, snapshot.latestVersion[0] ? snapshot.latestVersion : "-");
@@ -294,20 +344,29 @@ static void refreshOtaUi(const hu7::ota::Snapshot& snapshot) {
     setTextIfReady(ui_TextFirmSize2, valueText);
   }
 
-  snprintf(valueText, sizeof(valueText), "%u %%", snapshot.progress);
+  snprintf(valueText, sizeof(valueText), "%u %%", snapshot.downloadProgress);
   setTextIfReady(ui_TextUpdatePercent, valueText);
   if (ui_BarUpdateProgress != NULL) {
-    lv_bar_set_value(ui_BarUpdateProgress, snapshot.progress, LV_ANIM_OFF);
+    lv_bar_set_value(ui_BarUpdateProgress, snapshot.downloadProgress, LV_ANIM_OFF);
   }
+
+  snprintf(valueText, sizeof(valueText), "%u %%", snapshot.installProgress);
+  setTextIfReady(otaInstallProgressPercent, valueText);
+  if (otaInstallProgressBar != NULL) {
+    lv_bar_set_value(otaInstallProgressBar, snapshot.installProgress, LV_ANIM_OFF);
+  }
+  setTextIfReady(ui_TextUpdate, snapshot.installReady ? "Install" : "Download");
 
   const bool busy = snapshot.state == hu7::ota::OtaState::Connecting ||
                     snapshot.state == hu7::ota::OtaState::CheckingVersion ||
                     snapshot.state == hu7::ota::OtaState::Downloading ||
                     snapshot.state == hu7::ota::OtaState::Verifying ||
+                    snapshot.state == hu7::ota::OtaState::Installing ||
                     snapshot.state == hu7::ota::OtaState::Rebooting;
   setDisabled(ui_DropdownTarget, busy);
   setDisabled(ui_ButtonRefresh, busy || snapshot.selectedTarget != hu7::ota::UpdateTarget::HU7);
-  setDisabled(ui_ButtonUpdate, busy || !snapshot.updateAvailable);
+  setDisabled(ui_ButtonUpdate, busy ||
+                                      (!snapshot.updateAvailable && !snapshot.installReady));
   if (ui_ButtonCancel != NULL) lv_obj_add_flag(ui_ButtonCancel, LV_OBJ_FLAG_HIDDEN);
 }
 
@@ -344,7 +403,7 @@ static void onOtaUpdate(lv_event_t* event) {
   if (lv_event_get_code(event) != LV_EVENT_CLICKED) return;
   if (hu7::ota::otaManagerRequestUpdate()) {
     setDisabled(ui_ButtonUpdate, true);
-    setTextIfReady(ui_TextErr, "OTA update queued");
+    setTextIfReady(ui_TextErr, "OTA action queued");
   } else if (!hu7::ota::otaManagerReady()) {
     setTextIfReady(ui_TextErr, "OTA task unavailable");
   } else {
