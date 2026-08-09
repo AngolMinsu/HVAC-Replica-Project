@@ -18,12 +18,15 @@ constexpr const char* kNoMediaImage = "S:/assets/media/No_Media.bin";
 
 lv_img_dsc_t settingsDescriptor{};
 lv_img_dsc_t mapCardDescriptor{};
+lv_img_dsc_t mapDescriptor{};
 lv_img_dsc_t mediaCardDescriptor{};
 lv_img_dsc_t noMediaDescriptor{};
 
-const void* resolveImage(const char* path, lv_img_dsc_t* descriptor, bool preload) {
+const void* resolveImage(const char* path, lv_img_dsc_t* descriptor, bool preload,
+                         uint16_t targetWidth = 0, uint16_t targetHeight = 0) {
   if (!storageManagerFileExists(path)) return nullptr;
-  if (preload && descriptor != nullptr && storageManagerLoadLvglImage(path, descriptor)) {
+  if (preload && descriptor != nullptr &&
+      storageManagerLoadLvglImage(path, descriptor, targetWidth, targetHeight)) {
     return descriptor;
   }
   return path;
@@ -43,7 +46,8 @@ void removeCardBezel(lv_obj_t* card) {
   lv_obj_set_style_border_width(card, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_outline_width(card, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_shadow_width(card, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_radius(card, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_radius(card, 16, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_clip_corner(card, true, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_set_style_bg_opa(card, LV_OPA_TRANSP, LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_OVERFLOW_VISIBLE);
 }
@@ -54,24 +58,7 @@ void addCardImage(lv_obj_t* card, const void* source) {
 
   lv_obj_t* image = addImage(card, source);
   if (image == nullptr) return;
-
-  lv_obj_update_layout(card);
-  lv_obj_update_layout(image);
-  const lv_coord_t cardWidth = lv_obj_get_width(card);
-  const lv_coord_t cardHeight = lv_obj_get_height(card);
-  const lv_coord_t imageWidth = lv_obj_get_width(image);
-  const lv_coord_t imageHeight = lv_obj_get_height(image);
-
-  if (imageWidth > 0 && imageHeight > 0) {
-    const uint32_t zoomWidth =
-        (static_cast<uint32_t>(cardWidth) * 256U + imageWidth - 1U) / imageWidth;
-    const uint32_t zoomHeight =
-        (static_cast<uint32_t>(cardHeight) * 256U + imageHeight - 1U) / imageHeight;
-    uint32_t zoom = zoomWidth > zoomHeight ? zoomWidth : zoomHeight;
-    if (zoom > 768U) zoom = 768U;
-    lv_img_set_zoom(image, static_cast<uint16_t>(zoom));
-  }
-
+  lv_obj_set_size(image, lv_obj_get_width(card), lv_obj_get_height(card));
   lv_obj_center(image);
   lv_obj_move_background(image);
 }
@@ -115,9 +102,12 @@ void addNoMediaImage(lv_obj_t* label, const void* source) {
 void dynamicImageUiBegin() {
   if (!storageManagerIsReady()) return;
 
-  const void* settingsSource = resolveImage(kSettingsImage, &settingsDescriptor, true);
-  const void* mapCardSource = resolveImage(kMapCardImage, &mapCardDescriptor, true);
-  const void* mediaCardSource = resolveImage(kMediaCardImage, &mediaCardDescriptor, true);
+  const void* settingsSource =
+      resolveImage(kSettingsImage, &settingsDescriptor, true, 215, 372);
+  const void* mapCardSource =
+      resolveImage(kMapCardImage, &mapCardDescriptor, true, 215, 372);
+  const void* mediaCardSource =
+      resolveImage(kMediaCardImage, &mediaCardDescriptor, true, 215, 372);
   const void* noMediaSource = resolveImage(kNoMediaImage, &noMediaDescriptor, true);
 
   addCardImage(ui_CardSet, settingsSource);
@@ -130,7 +120,7 @@ void dynamicImageUiBegin() {
 
   if (ui_ContentMap != nullptr) {
     lv_obj_clear_flag(ui_ContentMap, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-    const void* mapSource = resolveImage(kMapImage, nullptr, false);
+    const void* mapSource = resolveImage(kMapImage, &mapDescriptor, true);
     lv_obj_t* mapImage = addImage(ui_ContentMap, mapSource);
     if (mapImage != nullptr) {
       lv_obj_center(mapImage);

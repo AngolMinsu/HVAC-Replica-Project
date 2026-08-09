@@ -113,7 +113,8 @@ bool storageManagerFileExists(const char* lvglPath) {
   return SD_MMC.exists(normalizePath(lvglPath));
 }
 
-bool storageManagerLoadLvglImage(const char* lvglPath, lv_img_dsc_t* image) {
+bool storageManagerLoadLvglImage(const char* lvglPath, lv_img_dsc_t* image,
+                                 uint16_t targetWidth, uint16_t targetHeight) {
   static_assert(sizeof(lv_img_header_t) == 4, "Unexpected LVGL image header size");
   if (!storageReady || lvglPath == nullptr || image == nullptr) return false;
 
@@ -155,10 +156,55 @@ bool storageManagerLoadLvglImage(const char* lvglPath, lv_img_dsc_t* image) {
     return false;
   }
 
+  uint8_t* finalData = data;
+  size_t finalDataSize = dataSize;
+  lv_img_header_t finalHeader = header;
+
+  if (targetWidth > 0 && targetHeight > 0 &&
+      (header.w != targetWidth || header.h != targetHeight)) {
+    const uint8_t bitsPerPixel = lv_img_cf_get_px_size(header.cf);
+    if (bitsPerPixel % 8U != 0) {
+      heap_caps_free(data);
+      return false;
+    }
+
+    const size_t bytesPerPixel = bitsPerPixel / 8U;
+    const size_t scaledSize =
+        static_cast<size_t>(targetWidth) * targetHeight * bytesPerPixel;
+    uint8_t* scaled = static_cast<uint8_t*>(
+        heap_caps_malloc(scaledSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (scaled == nullptr) {
+      heap_caps_free(data);
+      Serial.printf("SD: scaled image allocation failed for %s\n", lvglPath);
+      return false;
+    }
+
+    for (uint16_t y = 0; y < targetHeight; ++y) {
+      const uint16_t sourceY =
+          static_cast<uint32_t>(y) * header.h / targetHeight;
+      for (uint16_t x = 0; x < targetWidth; ++x) {
+        const uint16_t sourceX =
+            static_cast<uint32_t>(x) * header.w / targetWidth;
+        const size_t sourceOffset =
+            (static_cast<size_t>(sourceY) * header.w + sourceX) * bytesPerPixel;
+        const size_t targetOffset =
+            (static_cast<size_t>(y) * targetWidth + x) * bytesPerPixel;
+        memcpy(scaled + targetOffset, data + sourceOffset, bytesPerPixel);
+      }
+    }
+
+    heap_caps_free(data);
+    finalData = scaled;
+    finalDataSize = scaledSize;
+    finalHeader.w = targetWidth;
+    finalHeader.h = targetHeight;
+  }
+
   *image = {};
-  image->header = header;
-  image->data_size = static_cast<uint32_t>(dataSize);
-  image->data = data;
-  Serial.printf("SD: cached %s (%u bytes)\n", lvglPath, static_cast<unsigned>(dataSize));
+  image->header = finalHeader;
+  image->data_size = static_cast<uint32_t>(finalDataSize);
+  image->data = finalData;
+  Serial.printf("SD: cached %s (%u bytes)\n",
+                lvglPath, static_cast<unsigned>(finalDataSize));
   return true;
 }

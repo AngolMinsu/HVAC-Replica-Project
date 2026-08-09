@@ -171,7 +171,7 @@ bool OtaHttpClient::downloadAndInstall(const Manifest& manifest,
   uint8_t buffer[4096];
   uint32_t received = 0;
   uint32_t lastDataMs = millis();
-  uint8_t lastProgress = 255;
+  uint8_t lastProgress = 0;
   bool failed = false;
   while (received < manifest.size) {
     const int available = stream.available();
@@ -198,10 +198,11 @@ bool OtaHttpClient::downloadAndInstall(const Manifest& manifest,
       received += static_cast<uint32_t>(bytesRead);
       lastDataMs = millis();
       const uint8_t progress = static_cast<uint8_t>((received * 100ULL) / manifest.size);
-      if (progress != lastProgress && progressCallback != nullptr) {
+      if ((progress >= lastProgress + 5U || progress == 100U) && progressCallback != nullptr) {
         lastProgress = progress;
         progressCallback(progress, progressContext);
       }
+      delay(2);
       continue;
     }
     if (!http.connected() || millis() - lastDataMs > 10000) {
