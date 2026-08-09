@@ -3,6 +3,7 @@
 #include <FS.h>
 #include <SD_MMC.h>
 #include <cstring>
+#include <esp_heap_caps.h>
 #include <lvgl.h>
 
 #include "../../GDS.h"
@@ -69,6 +70,7 @@ lv_fs_res_t fsTell(lv_fs_drv_t*, void* filePointer, uint32_t* position) {
 void registerLvglDrive() {
   lv_fs_drv_init(&lvglDriver);
   lvglDriver.letter = 'S';
+  lvglDriver.cache_size = 16U * 1024U;
   lvglDriver.ready_cb = fsReady;
   lvglDriver.open_cb = fsOpen;
   lvglDriver.close_cb = fsClose;
@@ -109,4 +111,54 @@ bool storageManagerIsReady() {
 bool storageManagerFileExists(const char* lvglPath) {
   if (!storageReady || lvglPath == nullptr) return false;
   return SD_MMC.exists(normalizePath(lvglPath));
+}
+
+bool storageManagerLoadLvglImage(const char* lvglPath, lv_img_dsc_t* image) {
+  static_assert(sizeof(lv_img_header_t) == 4, "Unexpected LVGL image header size");
+  if (!storageReady || lvglPath == nullptr || image == nullptr) return false;
+
+  File file = SD_MMC.open(normalizePath(lvglPath), FILE_READ);
+  if (!file || file.isDirectory() || file.size() <= sizeof(lv_img_header_t)) {
+    file.close();
+    return false;
+  }
+
+  lv_img_header_t header{};
+  if (file.read(reinterpret_cast<uint8_t*>(&header), sizeof(header)) != sizeof(header) ||
+      header.always_zero != 0 || header.w == 0 || header.h == 0) {
+    file.close();
+    return false;
+  }
+
+  const size_t dataSize = file.size() - sizeof(header);
+  uint8_t* data = static_cast<uint8_t*>(
+      heap_caps_malloc(dataSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  if (data == nullptr) {
+    file.close();
+    Serial.printf("SD: PSRAM allocation failed for %s\n", lvglPath);
+    return false;
+  }
+
+  size_t totalRead = 0;
+  while (totalRead < dataSize) {
+    const size_t remaining = dataSize - totalRead;
+    const size_t chunk = remaining > 32768U ? 32768U : remaining;
+    const size_t bytesRead = file.read(data + totalRead, chunk);
+    if (bytesRead == 0) break;
+    totalRead += bytesRead;
+  }
+  file.close();
+
+  if (totalRead != dataSize) {
+    heap_caps_free(data);
+    Serial.printf("SD: image read failed for %s\n", lvglPath);
+    return false;
+  }
+
+  *image = {};
+  image->header = header;
+  image->data_size = static_cast<uint32_t>(dataSize);
+  image->data = data;
+  Serial.printf("SD: cached %s (%u bytes)\n", lvglPath, static_cast<unsigned>(dataSize));
+  return true;
 }

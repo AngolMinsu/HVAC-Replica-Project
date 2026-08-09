@@ -56,9 +56,9 @@ def main() -> None:
     root = args.sd_root.resolve()
 
     jobs = (
-        ("assets/ui/Home_setting.jpg", (207, 288), False),
-        ("assets/ui/Home_Map.jpg", (207, 288), False),
-        ("assets/ui/Home_Media.png", (207, 288), True),
+        ("assets/ui/Home_setting.jpg", (215, 372), False),
+        ("assets/ui/Home_Map.jpg", (215, 372), False),
+        ("assets/ui/Home_Media.png", (215, 372), True),
         ("assets/map/NaverMap.png", (1024, 516), False),
         ("assets/media/No_Media.png", (50, 50), True),
     )
