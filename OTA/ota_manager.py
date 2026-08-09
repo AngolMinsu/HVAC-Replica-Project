@@ -56,7 +56,7 @@ class OtaManagerApp(tk.Tk):
         self.log_queue: queue.Queue[str] = queue.Queue()
 
         self.target_var = tk.StringVar(value="HU7")
-        self.version_var = tk.StringVar(value="1.0.0")
+        self.version_var = tk.StringVar(value="0.5.0")
         self.file_var = tk.StringVar()
         self.file_size_var = tk.StringVar(value="-")
         self.sha_var = tk.StringVar(value="-")
